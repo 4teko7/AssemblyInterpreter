@@ -69,6 +69,7 @@ bool checkComma(string& line);
 bool checkSemiColon(string& line);
 bool checkint20h(string& line);
 bool isint20h = false;
+
 struct dbVariable{
     string name;
     unsigned short size;
@@ -99,14 +100,10 @@ vector<dwVariable> dwVariables;
 vector<Label> labels;
 void getLabelContent(Label& label,ifstream& inFile);
 void createLabel(ifstream& inFile,string& labelName);
+void getLineTrimLower(ifstream& inFile,string& firstLine);
+void printLabels();
 int main()
 {
-
-
-
-
-
-
 
     // Open the input and output files, check for failures
     ifstream inFile("atwon.txt");
@@ -115,39 +112,55 @@ int main()
         return 1;
     }
 
-
-
-
-
-
-
-
-
    string firstLine;
-   getline(inFile,firstLine);
-   toLower(firstLine);
+   getLineTrimLower(inFile,firstLine);
 
    while(!checkint20h(firstLine) && !isint20h){
       parseInput(firstLine,inFile);  
-      getline(inFile,firstLine);
-      toLower(firstLine);
+      getLineTrimLower(inFile,firstLine);
    }
 
-
-   std::vector<string>::iterator it;
-   
-   for (int i = 0; i < labels.size(); i++)
-   {
-   for (it = labels.at(i).content.begin(); it != labels.at(i).content.end(); it++)
-   {
-      cout << "LABEL NAME : " << labels.at(i).name << " - LABEL CONTENT : " << (*it) << endl;
-
-   }
-      }
-
+   printLabels();
 }
 
 
+
+
+
+// INPUT PARSING
+void parseInput(string& line,ifstream& inFile){
+   trim(line);
+   bool isDb = line.find("db") != string::npos;
+   bool isDw = line.find("dw") != string::npos;
+   if(isDb || isDw){
+      db(line);
+      return;
+   }
+   if(checkSemiColon(line)){
+      createLabel(inFile,line);
+   }
+
+
+   // if(checkSpace(line) || checkQuotationMarks(line) || checkComma(line)){
+
+   // }
+
+
+   istringstream linestream(line);
+   string temp,firstWord,secondWord,thirdWord,forthWord,fifthWord,sixthWord,seventhWord;
+
+   bool space = line.find(' ') != string::npos;
+   if(space){
+      getline(linestream,firstWord,' ');
+      getline(linestream,secondWord,',');
+      getline(linestream,thirdWord);
+      // cout << "FirstWord : " << firstWord << " - Second Word : " << secondWord << " - thirdWord : " << thirdWord << endl;
+   }
+   // bool comma = line.find(',') != string::npos;
+   // bool semicolon = line.find(':') != string::npos;
+}
+
+// VARIABLES
 void db(string& line){
    istringstream linestream(line);
    string temp,firstWord,secondWord,thirdWord,forthWord,fifthWord,sixthWord,seventhWord = "";
@@ -184,22 +197,8 @@ void db(string& line){
    }
 }
 
-bool checkSpace(string& line){
-   return line.find(' ') != string::npos;
-}
-bool checkQuotationMarks(string& line){
-   return line.find('"') != string::npos;
-}
-bool checkComma(string& line){
-   return line.find(',') != string::npos;
-}
-bool checkSemiColon(string& line){
-   return line.find(':') != string::npos;
-}
-bool checkint20h(string& line){
-   return line.find("int 20h") != string::npos;
-}
 
+// LABELS
 void getLabelContent(Label& label,ifstream& inFile){
    string firstLine;
    getline(inFile,firstLine);
@@ -207,10 +206,8 @@ void getLabelContent(Label& label,ifstream& inFile){
    toLower(firstLine);
    while(!checkint20h(firstLine) && !checkSemiColon(firstLine)){
       if(firstLine != "\r") label.content.push_back(firstLine);
-      getline(inFile,firstLine);
-      
-      trim(firstLine);
-      toLower(firstLine);
+      getLineTrimLower(inFile,firstLine);
+
    }
    labels.push_back(label);
    if(checkSemiColon(firstLine)){
@@ -231,56 +228,62 @@ void createLabel(ifstream& inFile,string& stringName){
    getLabelContent(label,inFile);
    
 }
-void parseInput(string& line,ifstream& inFile){
-   trim(line);
-   bool isDb = line.find("db") != string::npos;
-   bool isDw = line.find("dw") != string::npos;
-   if(isDb || isDw){
-      db(line);
-      return;
-   }
-   if(checkSemiColon(line)){
-      createLabel(inFile,line);
-   }
 
 
-   // if(checkSpace(line) || checkQuotationMarks(line) || checkComma(line)){
+//  GETLINE - TRIM - toLOWERCASE
 
-   // }
-
-
-   istringstream linestream(line);
-   string temp,firstWord,secondWord,thirdWord,forthWord,fifthWord,sixthWord,seventhWord;
-
-   bool space = line.find(' ') != string::npos;
-   if(space){
-      getline(linestream,firstWord,' ');
-      getline(linestream,secondWord,',');
-      getline(linestream,thirdWord);
-      // cout << "FirstWord : " << firstWord << " - Second Word : " << secondWord << " - thirdWord : " << thirdWord << endl;
-   }
-   // bool comma = line.find(',') != string::npos;
-   // bool semicolon = line.find(':') != string::npos;
+void getLineTrimLower(ifstream& inFile,string& firstLine){
+   getline(inFile,firstLine);
+   trim(firstLine);
+   toLower(firstLine);
+   
 }
+
+// LOWER CASE
 void toLower(string& firstLine){
    transform(firstLine.begin(), firstLine.end(), firstLine.begin(), ::tolower);
 }
 
-// 
-
-inline std::string trim(std::string& str)
-{
+// TRIM LINES
+inline std::string trim(std::string& str) {
     str.erase(0, str.find_first_not_of(' '));       //prefixing spaces
     str.erase(str.find_last_not_of(' ')+1);         //surfixing spaces
     return str;
 }
 
+// PRINT LABELS
+void printLabels(){
+
+   std::vector<string>::iterator it;
+   
+   for (int i = 0; i < labels.size(); i++)
+   {
+   for (it = labels.at(i).content.begin(); it != labels.at(i).content.end(); it++)
+   {
+      cout << "LABEL NAME : " << labels.at(i).name << " - LABEL CONTENT : " << (*it) << endl;
+
+   }
+      }
+}
 
 
-
-
-
-
+//       C H E C K S
+bool checkSpace(string& line){
+   return line.find(' ') != string::npos;
+}
+bool checkQuotationMarks(string& line){
+   return line.find('"') != string::npos;
+}
+bool checkComma(string& line){
+   return line.find(',') != string::npos;
+}
+bool checkSemiColon(string& line){
+   return line.find(':') != string::npos;
+}
+bool checkint20h(string& line){
+   return line.find("int 20h") != string::npos;
+}
+//       E N D   C H E C K S
 
 
 // std::stoi( str )   //String To Integer
