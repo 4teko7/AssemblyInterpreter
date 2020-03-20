@@ -1,0 +1,107 @@
+jmp start
+number db 5 dup 0
+cr dw 10,13,"$"
+temp dw 0
+n1 dw 0
+n2 dw 0
+
+start:
+    mov cx,0
+    mov bl,0
+
+morechar:
+    mov ah,01h
+    int 21h
+    mov dx,0
+    mov dl,al
+    mov ax,cx
+    cmp dl,0D
+    je finnum
+    sub dx,'0'
+    mov temp,dx
+    mov ax,cx
+    mov cx,10d
+    mul cx
+    add ax,temp
+    mov cx,ax
+    jmp morechar
+
+finnum:
+    inc bl
+    cmp bl,1
+    je firstnum
+    cmp bl,2
+    je secondnum
+firstnum:
+    mov n1,cx
+    mov ah,09
+    mov dx,offset cr
+    int 21h
+    mov ah,02h
+    mov dl,0dh
+    int 21h
+    mov cx,0
+    jmp morechar
+secondnum:
+    mov n2,cx
+    mov ah,09
+    mov dx,offset cr
+    int 21h
+
+summation:
+    mov ax,n1
+    mov bx,n2
+    add ax,bx
+
+
+setupString:
+    mov bx,offset number+4
+    mov b[bx],"$"
+    dec bx
+
+convertDecimal:
+    mov dx,0
+    mov cx,10d
+    div cx
+    add dx,48d
+    mov [bx],dl
+    dec bx
+    cmp ax,00
+    jnz convertDecimal
+
+printChar:
+    mov ah,09
+    mov dx,offset cr
+    int 21h
+
+printOut:
+    mov dx,bx
+    inc dx
+    mov ah,09
+    int 21h
+
+close:
+    mov ah,04ch
+    mov al,00
+    int 21h
+
+
+int 20h
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
