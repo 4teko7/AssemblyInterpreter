@@ -104,11 +104,9 @@ vector<dwVariable> dwVariables;
 vector<dbVariable> dbVariables;
 vector<Label> labels;
 bool isint20h = false;
-int8_t *pmhl = nullptr;
-int8_t *pnhl = nullptr;
 
-unsigned short *pmx = nullptr; 
-unsigned short *pnx = nullptr; 
+vector<string> afterCompare;
+bool isJustAfterCompare = false;
 
 // FUNCTIONS
 void db(string& line);
@@ -138,6 +136,9 @@ void parseInput(string& line,ifstream& inFile);
 inline std::string trim(std::string& str);
 int determineValueOfInstruction(string &reg);
 void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg);
+int getIndexOfLabel(string & labelName);
+void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl);
+void comparison(unsigned short firstValue,unsigned short secondValue);
 int main()
 {
 
@@ -166,17 +167,22 @@ int main()
 }
 
 void processLabels(int index){
+   int index2 = -1;
    string line = "";
    std::vector<string>::iterator it;
-   
-   for (int i = index; i < labels.size(); i++)
+   bool newJmpFound = false;
+   string newLabel = "";
+   for (int i = index; i < labels.size() && !newJmpFound; i++)
    {
-   for (it = labels.at(i).content.begin(); it != labels.at(i).content.end(); it++)
+   for (it = labels.at(i).content.begin(); it != labels.at(i).content.end() && !newJmpFound; it++)
    {
       line = (*it);
       istringstream linestream(line);
       getline(linestream,firstWord,' ');
-      
+      if(firstWord.at(0) != 'j'){
+         isJustAfterCompare = false;
+         afterCompare.clear();
+      }  
       if(firstWord == "mov" || firstWord == "add" || firstWord == "sub"){
          twoWordsComma(linestream,secondWord,thirdWord);
          processTwoWordsInstructions(firstWord,secondWord,thirdWord);
@@ -202,44 +208,66 @@ void processLabels(int index){
       }else if(firstWord == "nop"){
          
       }else if(firstWord == "cmp"){
-         
-      }else if(firstWord == "jz"){
-         
-      }else if(firstWord == "jnz"){
-         
-      }else if(firstWord == "je"){
-         
-      }else if(firstWord == "jne"){
-         
-      }else if(firstWord == "ja"){
-         
-      }else if(firstWord == "jae"){
-         
-      }else if(firstWord == "jb"){
-         
-      }else if(firstWord == "jbe"){
-         
-      }else if(firstWord == "jnae"){
-         
-      }else if(firstWord == "jnb"){
-         
-      }else if(firstWord == "jnbe"){
-         
-      }else if(firstWord == "jnc"){
-         
-      }else if(firstWord == "jc"){
+         twoWordsComma(linestream,secondWord,thirdWord);
+         processTwoWordsInstructions(firstWord,secondWord,thirdWord);
+         isJustAfterCompare = true;
+      }else if(firstWord.at(0) == 'j'){
+         getline(linestream,secondWord);
+         secondWord = secondWord.substr(0,secondWord.length()-1);
+
+         if(firstWord == "jmp"){
+            newJmpFound = true;
+            newLabel = secondWord;
+            index2 = getIndexOfLabel(newLabel);
+         }else{
+         vector<string>::iterator it;
+         for (it = afterCompare.begin(); it != afterCompare.end(); it++) {
+            if((*it) == firstWord){
+               newJmpFound = true;
+               newLabel = secondWord;
+               index2 = getIndexOfLabel(newLabel);
+               break;
+            }
+
+            /* code */
+         }
+         }
          
       }
+      
+      // else if(firstWord == "jnz" || firstWord == "jne"){
+         
+      // }else if(firstWord == "je" || firstWord == "jz"){
+         
+      // }else if(firstWord == "ja" || firstWord == "jnbe"){
+         
+      // }else if(firstWord == "jbe"){
+         
+      // }else if(firstWord == "jnae" || firstWord == "jc" || firstWord == "jb"){
+         
+      // }else if(firstWord == "jnb" || firstWord == "jnc" || firstWord == "jae"){
+         
+      //  }
 
 
-      getline(linestream,secondWord,',');
-      getline(linestream,thirdWord);
+      //else if(firstWord.find(":") != string::npos){
+      //    newLabelFound = true;
+      //    newLabel = firstWord.substr(0,firstWord.length()-1);
+      //    isJustAfterCompare = false;
+      //    break;
+      // }
+
+
+      // getline(linestream,secondWord,',');
+      // getline(linestream,thirdWord);
 
    }
       }
-
-
-
+   // if(newLabelFound){
+   //    int index2 = getIndexOfLabel(newLabel);
+   //    if(index2 != -1) processLabels(index2);
+   // }
+if(index2 != -1) processLabels(index2);
 }
 void twoWordsComma(istringstream& linestream,string& secondWord, string& thirdWord){
    getline(linestream,secondWord,',');
@@ -307,21 +335,20 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2){
       str2 = str2.substr(0,str2.length()-1);
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
-
+      int8_t *pmhl = nullptr;
+      int8_t *pnhl = nullptr;
+      unsigned short *pmx = nullptr; 
+      unsigned short *pnx = nullptr; 
 
       bool isVariableFound1 = false;
       bool isVariableFound2 = false;
 
    // For Register Names
 
-   determineReg(&pmx,&pmhl,str1);
-   determineReg(&pnx,&pnhl,str2);
+      determineReg(&pmx,&pmhl,str1);
+      determineReg(&pnx,&pnhl,str2);
 
-   // This Is For Variable Names
-   if(pnx == nullptr && pnhl == nullptr){
-
-      for (it = dbVariables.begin(); it != dbVariables.end(); it++)
-      {
+      for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
          if(str2 == (*it).name){
             isVariableFound1 = true;
             break;
@@ -337,7 +364,6 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2){
          }
       }
       }
-   }
       if(option == "mov"){
          move(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,pmhl,pnhl);
       }else if(option == "add"){
@@ -345,7 +371,7 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2){
       }else if(option == "sub"){
          sub(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,pmhl,pnhl);
       }else if(option == "cmp"){
-
+         cmp(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,pmhl,pnhl);
       }
 
 
@@ -717,6 +743,120 @@ void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
          }
 }
 
+void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl){
+         char character;
+         if(pmx != nullptr){
+            if(pnx != nullptr){
+               comparison(*pmx,*pnx);
+            }
+               // VARIABLE WILL BE MOVED.
+            else if(isVariableFound1){
+               if((*it).character){
+                  comparison(*pmx,(int8_t)((*it).character));
+               }else{
+                  comparison(*pmx,(int8_t)((*it).value));
+               }
+            }else if(isVariableFound2){
+               if((*it2).character){
+                  comparison(*pmx,(unsigned short)((*it2).character));
+               }else{
+                  comparison(*pmx,(unsigned short)((*it2).value));
+               }
+            }
+            
+            else if(str2.at(str2.length()-1) == 'h'){
+               str2 = str2.substr(0,str2.length()-1);
+               comparison(*pmx,(unsigned short)stoi(str2));
+
+            }else if((48 <= str2.at(0) && str2.at(0) <= 57)){
+               if(str2.at(str2.length()-1) == 'd'){
+                  str2 = str2.substr(0,str2.length()-1);
+               }
+               comparison(*pmx,(unsigned short)stoi(str2));
+               
+            }else{
+               
+               if(str2.at(0) == '\''){
+                  character = str2.at(1);
+               }else if(str2.at(0) == '\"'){
+                  character = str2.at(1);
+               }else{
+                  character = str2.at(0);
+               }
+               comparison(*pmx,(int8_t)character);
+
+            }
+         }else if(pmhl != nullptr){
+            if(pnhl != nullptr){
+               comparison(*pmhl,*pnhl);
+            }
+               // VARIABLE WILL BE MOVED.
+            else if(isVariableFound1){
+               if((*it).character){
+                  comparison(*pmhl,(int8_t)((*it).character));
+               }else{
+                  comparison(*pmhl,(int8_t)((*it).value));
+               }
+
+            }else if(isVariableFound2){
+               if((*it2).character){
+                  comparison(*pmhl,(int8_t)((*it2).character));
+               }else{
+                  comparison(*pmhl,(int8_t)((*it2).value));
+               }
+
+
+            }else if((48 <= str2.at(0) && str2.at(0) <= 57)){
+               if(str2.at(str2.length()-1) == 'd'){
+                  str2 = str2.substr(0,str2.length()-1);
+               }else if((str2.at(str2.length()-1) == 'h')){
+                  str2 = str2.substr(0,str2.length()-1);
+               }
+               comparison(*pmhl,(int8_t)hexToDec(str2));
+            }else{
+               
+               if(str2.at(0) == '\''){
+                  character = str2.at(1);
+               }else if(str2.at(0) == '\"'){
+                  character = str2.at(1);
+               }else{
+                  character = str2.at(0);
+               }
+               character = str2.at(0);
+               comparison(*pmhl,(int8_t)character);
+            }
+         }
+}
+
+void comparison(unsigned short firstValue,unsigned short secondValue){
+   if(firstValue == secondValue && zf == 1) {
+      afterCompare.push_back("je");
+      afterCompare.push_back("jz");
+   }
+   if(firstValue != secondValue && zf == 0) {
+      afterCompare.push_back("jne");
+      afterCompare.push_back("jnz");
+   }
+   if(firstValue > secondValue && cf == 0 && zf == 0) {
+      afterCompare.push_back("ja");
+      afterCompare.push_back("jnbe");
+   }
+   if(firstValue < secondValue && cf == 1) {
+      afterCompare.push_back("jb");
+      afterCompare.push_back("jnae");
+      afterCompare.push_back("jc");
+   }
+   if(firstValue >= secondValue && cf == 0) {
+      afterCompare.push_back("jnb");
+      afterCompare.push_back("jae");
+      afterCompare.push_back("jnc");
+   }
+   if(firstValue <= secondValue && cf == 1 && zf == 1) {
+      afterCompare.push_back("jbe");
+      afterCompare.push_back("jna");
+   }
+
+}
 //  MOVE REG TO REG
 template <class regtype> 
 void movRegToReg(regtype *preg1,regtype *preg2) 
@@ -912,6 +1052,19 @@ void printLabels(){
 
    }
       }
+}
+
+// PRINT LABELS
+int getIndexOfLabel(string & labelName) {
+
+   std::vector<string>::iterator it;
+   
+   for (int i = 0; i < labels.size(); i++) {
+      if(labels.at(i).name == labelName){
+         return i;
+         }
+      }
+      return -1;
 }
 
 

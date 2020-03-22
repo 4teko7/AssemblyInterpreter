@@ -5,24 +5,22 @@ n1 dw 0
 n2 dw 0
 
 start:
-    push 3
-    push 5
-    pop ax
-    pop bx
-    push a
-    pop cx
+    jmp morechar
+    mov ah,5
+    mov al,3
+    cmp ah,al
     mov ah,0A
     int 21h
     mov ah,09h
     int 21h
 morechar:
+    cmp dl,1D
+    jne finnum
     mov ah,01h
     int 21h
     mov dx,0
     mov dl,al
     mov ax,cx
-    cmp dl,0D
-    je finnum
     sub dx,'0'
     mov temp,dx
     mov ax,cx
