@@ -104,7 +104,6 @@ vector<dwVariable> dwVariables;
 vector<dbVariable> dbVariables;
 vector<Label> labels;
 bool isint20h = false;
-
 vector<string> afterCompare;
 bool isJustAfterCompare = false;
 
@@ -113,6 +112,7 @@ void db(string& line);
 void dw(string& line);
 bool checkSpace(string& line);
 bool checkQuotationMarks(string& line);
+bool checkSingleQuotationMark(string& line);
 bool checkComma(string& line);
 bool checkSemiColon(string& line);
 bool checkint20h(string& line);
@@ -139,8 +139,12 @@ void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg);
 int getIndexOfLabel(string & labelName);
 void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl);
 void comparison(unsigned short firstValue,unsigned short secondValue);
-int main()
-{
+int getOtherValue(string &str1);
+int getVariableValue(string &str1);
+unsigned short getVariableValue(bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2);
+bool checkBrackets(string& line);
+inline string getLinestreamLine(istringstream& linestream,string& word,char option);
+int main() {
 
     // Open the input and output files, check for failures
     ifstream inFile("atwon.txt");
@@ -157,13 +161,7 @@ int main()
       getLineTrimLower(inFile,firstLine);
    }
 
-   printLabels();
-   cout << " ********************************************** " << endl;
-   // printVariables();
    processLabels(0);
-
-   printLabels();
-
 }
 
 void processLabels(int index){
@@ -172,13 +170,14 @@ void processLabels(int index){
    std::vector<string>::iterator it;
    bool newJmpFound = false;
    string newLabel = "";
-   for (int i = index; i < labels.size() && !newJmpFound; i++)
-   {
-   for (it = labels.at(i).content.begin(); it != labels.at(i).content.end() && !newJmpFound; it++)
-   {
+   for (int i = index; i < labels.size() && !newJmpFound; i++) {
+   for (it = labels.at(i).content.begin(); it != labels.at(i).content.end() && !newJmpFound; it++) {
+   string temp,firstWord,secondWord,thirdWord,forthWord,fifthWord,sixthWord,seventhWord = "";
+
+      print_16bitregs();
       line = (*it);
       istringstream linestream(line);
-      getline(linestream,firstWord,' ');
+      getLinestreamLine(linestream,firstWord,' ');
       if(firstWord.at(0) != 'j'){
          isJustAfterCompare = false;
          afterCompare.clear();
@@ -212,7 +211,7 @@ void processLabels(int index){
          processTwoWordsInstructions(firstWord,secondWord,thirdWord);
          isJustAfterCompare = true;
       }else if(firstWord.at(0) == 'j'){
-         getline(linestream,secondWord);
+         getLinestreamLine(linestream,secondWord,' ');
          secondWord = secondWord.substr(0,secondWord.length()-1);
 
          if(firstWord == "jmp"){
@@ -229,45 +228,16 @@ void processLabels(int index){
                break;
             }
 
-            /* code */
          }
          }
          
       }
-      
-      // else if(firstWord == "jnz" || firstWord == "jne"){
-         
-      // }else if(firstWord == "je" || firstWord == "jz"){
-         
-      // }else if(firstWord == "ja" || firstWord == "jnbe"){
-         
-      // }else if(firstWord == "jbe"){
-         
-      // }else if(firstWord == "jnae" || firstWord == "jc" || firstWord == "jb"){
-         
-      // }else if(firstWord == "jnb" || firstWord == "jnc" || firstWord == "jae"){
-         
-      //  }
 
-
-      //else if(firstWord.find(":") != string::npos){
-      //    newLabelFound = true;
-      //    newLabel = firstWord.substr(0,firstWord.length()-1);
-      //    isJustAfterCompare = false;
-      //    break;
-      // }
-
-
-      // getline(linestream,secondWord,',');
-      // getline(linestream,thirdWord);
 
    }
       }
-   // if(newLabelFound){
-   //    int index2 = getIndexOfLabel(newLabel);
-   //    if(index2 != -1) processLabels(index2);
-   // }
-if(index2 != -1) processLabels(index2);
+
+   if(index2 != -1) processLabels(index2);
 }
 void twoWordsComma(istringstream& linestream,string& secondWord, string& thirdWord){
    getline(linestream,secondWord,',');
@@ -276,7 +246,6 @@ void twoWordsComma(istringstream& linestream,string& secondWord, string& thirdWo
 
 
 void processOneWordInstructions(string& option, string& str1){
-   str1 = str1.substr(0,str1.length()-1);
    if(option == "int" && str1 == "21h"){
       if(*pah == 1){
          char temp;
@@ -284,7 +253,7 @@ void processOneWordInstructions(string& option, string& str1){
          *pal = (int8_t)temp;
          cout << *pal;
       }else if(decToHex(*pah) == "2"){
-         cout << *pdl;
+         cout << (*pdl) ;
       }else if(decToHex(*pah) == "8"){
          char temp;
          cin >> temp;
@@ -332,7 +301,6 @@ void processOneWordInstructions(string& option, string& str1){
 
 // PROCESS INSTRUCTIONS
 void processTwoWordsInstructions(string& option, string& str1,string& str2){
-      str2 = str2.substr(0,str2.length()-1);
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
       int8_t *pmhl = nullptr;
@@ -476,30 +444,61 @@ int determineValueOfInstruction(string &reg) {
          }else{
             result = (unsigned short)((*it2).value); 
          }
-      }else if((48 <= reg.at(0) && reg.at(0) <= 57)){
-               if(reg.at(reg.length()-1) == 'd'){
-                  reg = reg.substr(0,reg.length()-1);
-               }else if((reg.at(reg.length()-1) == 'h')){
-                  reg = reg.substr(0,reg.length()-1);
-               }
-               result = (int8_t)hexToDec(reg);
       }else{
-         char character;
-         if(reg.at(0) == '\''){
-            character = reg.at(1);
-         }else if(reg.at(0) == '\"'){
-            character = reg.at(1);
-         }else{
-            character = reg.at(0);
-         }
-         character = reg.at(0);
-         result = (int8_t)character;
+         result = getOtherValue(reg);
       }
       
    }
    return result;
 }
 
+unsigned short getVariableValue(bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2) {
+   unsigned short result = 0;
+   if(isVariableFound1){
+      if((*it).character){
+         result= (int8_t)((*it).character); 
+      }else{
+         result = (int8_t)((*it).value); 
+      }
+   }else if(isVariableFound2){
+      if((*it2).character){
+         result = (unsigned short)((*it2).character); 
+      }else{
+         result = (unsigned short)((*it2).value); 
+      }
+   }
+   return result;
+}
+
+// If Decimal,HexaDecimal and Character But Not Reg,Not Variable
+int getOtherValue(string &str1) {
+   int result = 0;
+   char character;
+
+   if((48 <= str1.at(0) && str1.at(0) <= 57)){
+      if(str1.at(str1.length()-1) == 'd'){
+         str1 = str1.substr(0,str1.length()-1);
+         result = (int8_t)stoi(str1);
+      }else if((str1.at(str1.length()-1) == 'h')){
+         str1 = str1.substr(0,str1.length()-1);
+         result = (int8_t)hexToDec(str1);
+      }else{
+         result = (int8_t)stoi(str1);
+      }
+      
+   }else{
+      
+      if(str1.at(0) == '\''){
+         character = str1.at(1);
+      }else if(str1.at(0) == '\"'){
+         character = str1.at(1);
+      }else{
+         character = str1.at(0);
+      }
+      result = (int8_t)character;
+   }
+      return result;
+}
 //     M O V E    F U N C T I O N
 void move(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl){
          char character;
@@ -508,77 +507,22 @@ void move(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::itera
                *pmx = *pnx;
             }
                // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1){
-               if((*it).character){
-                  *pmx= (int8_t)((*it).character); 
-               }else{
-                  *pmx = (int8_t)((*it).value); 
-               }
-            }else if(isVariableFound2){
-               if((*it2).character){
-                  *pmx = (unsigned short)((*it2).character); 
-               }else{
-                  *pmx = (unsigned short)((*it2).value); 
-               }
+            else if(isVariableFound1 || isVariableFound2){
+               *pmx = getVariableValue(isVariableFound1,isVariableFound2,it,it2);
             }
-            
-            else if(str2.at(str2.length()-1) == 'h'){
-               str2 = str2.substr(0,str2.length()-1);
-               *pmx = (unsigned short)stoi(str2);
-            }else if((48 <= str2.at(0) && str2.at(0) <= 57)){
-               if(str2.at(str2.length()-1) == 'd'){
-                  str2 = str2.substr(0,str2.length()-1);
-               }
-               *pmx = (unsigned short)stoi(str2);
-            }else{
-               
-               if(str2.at(0) == '\''){
-                  character = str2.at(1);
-               }else if(str2.at(0) == '\"'){
-                  character = str2.at(1);
-               }else{
-                  character = str2.at(0);
-               }
-               *pmx = (int8_t)character;
+            else{
+              *pmx = getOtherValue(str2);
             }
+
          }else if(pmhl != nullptr){
             if(pnhl != nullptr){
                *pmhl = *pnhl;
             }
                // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1){
-               if((*it).character){
-                  *pmhl = (int8_t)((*it).character); 
-               }else{
-                  *pmhl = (int8_t)((*it).value); 
-               }
-
-            }else if(isVariableFound2){
-               if((*it2).character){
-                  *pmhl = (int8_t)((*it2).character); 
-               }else{
-                  *pmhl = (int8_t)((*it2).value); 
-               }
-
-
-            }else if((48 <= str2.at(0) && str2.at(0) <= 57)){
-               if(str2.at(str2.length()-1) == 'd'){
-                  str2 = str2.substr(0,str2.length()-1);
-               }else if((str2.at(str2.length()-1) == 'h')){
-                  str2 = str2.substr(0,str2.length()-1);
-               }
-               *pmhl = (int8_t)hexToDec(str2);
+            else if(isVariableFound1 || isVariableFound2){
+               *pmhl = getVariableValue(isVariableFound1,isVariableFound2,it,it2);
             }else{
-               
-               if(str2.at(0) == '\''){
-                  character = str2.at(1);
-               }else if(str2.at(0) == '\"'){
-                  character = str2.at(1);
-               }else{
-                  character = str2.at(0);
-               }
-               character = str2.at(0);
-               *pmhl = (int8_t)character;
+              *pmhl = getOtherValue(str2);
             }
          }
 }
@@ -590,75 +534,22 @@ void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
                *pmx += *pnx;
             }
                // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1){
-               if((*it).character){
-                  *pmx += (unsigned short)((*it).character); 
-               }else{
-                  *pmx += (unsigned short)((*it).value); 
-               }
-            }else if(isVariableFound2){
-               if((*it2).character){
-                  *pmx += (unsigned short)((*it2).character); 
-               }else{
-                  *pmx += (unsigned short)((*it2).value); 
-               }
-            }
-            
-            else if(str2.at(str2.length()-1) == 'h'){
-               str2 = str2.substr(0,str2.length()-1);
-               *pmx += (unsigned short)stoi(str2);
-            }else if((48 <= str2.at(0) && str2.at(0) <= 57)){
-               if(str2.at(str2.length()-1) == 'd'){
-                  str2 = str2.substr(0,str2.length()-1);
-               }
-               *pmx += (unsigned short)stoi(str2);
+            else if(isVariableFound1 || isVariableFound2){
+               *pmx += getVariableValue(isVariableFound1,isVariableFound2,it,it2);
             }else{
-               if(str2.at(0) == '\''){
-                  character = str2.at(1);
-               }else if(str2.at(0) == '\"'){
-                  character = str2.at(1);
-               }else{
-                  character = str2.at(0);
-               }
-               *pmx += (unsigned short)character;
+              *pmx += getOtherValue(str2);
             }
+
+            
          }else if(pmhl != nullptr){
             if(pnhl != nullptr){
                *pmhl += *pnhl;
             }
                // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1){
-               if((*it).character){
-                  *pmhl += (int8_t)((*it).character); 
-               }else{
-                  *pmhl += (int8_t)((*it).value); 
-               }
-
-            }else if(isVariableFound2){
-               if((*it2).character){
-                  *pmhl += (int8_t)((*it2).character); 
-               }else{
-                  *pmhl += (int8_t)((*it2).value); 
-               }
-
-
-            }else if(str2.at(str2.length()-1) == 'h'){
-               str2 = str2.substr(0,str2.length()-1);
-               *pmhl += (int8_t)stoi(str2);
-            }else if((48 <= str2.at(0) && str2.at(0) <= 57)){
-               if(str2.at(str2.length()-1) == 'd'){
-                  str2 = str2.substr(0,str2.length()-1);
-               }
-               *pmhl += (int8_t)stoi(str2);
+            else if(isVariableFound1 || isVariableFound2){
+               *pmhl += getVariableValue(isVariableFound1,isVariableFound2,it,it2);
             }else{
-               if(str2.at(0) == '\''){
-                  character = str2.at(1);
-               }else if(str2.at(0) == '\"'){
-                  character = str2.at(1);
-               }else{
-                  character = str2.at(0);
-               }
-               *pmhl += (int8_t)character;
+              *pmhl += getOtherValue(str2);
             }
          }
 }
@@ -670,75 +561,20 @@ void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
                *pmx -= *pnx;
             }
                // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1){
-               if((*it).character){
-                  *pmx -= (unsigned short)((*it).character); 
-               }else{
-                  *pmx -= (unsigned short)((*it).value); 
-               }
-            }else if(isVariableFound2){
-               if((*it2).character){
-                  *pmx -= (unsigned short)((*it2).character); 
-               }else{
-                  *pmx -= (unsigned short)((*it2).value); 
-               }
-            }
-            
-            else if(str2.at(str2.length()-1) == 'h'){
-               str2 = str2.substr(0,str2.length()-1);
-               *pmx -= (unsigned short)stoi(str2);
-            }else if((48 <= str2.at(0) && str2.at(0) <= 57)){
-               if(str2.at(str2.length()-1) == 'd'){
-                  str2 = str2.substr(0,str2.length()-1);
-               }
-               *pmx -= (unsigned short)stoi(str2);
+            else if(isVariableFound1 || isVariableFound2){
+               *pmx -= getVariableValue(isVariableFound1,isVariableFound2,it,it2);
             }else{
-               if(str2.at(0) == '\''){
-                  character = str2.at(1);
-               }else if(str2.at(0) == '\"'){
-                  character = str2.at(1);
-               }else{
-                  character = str2.at(0);
-               }
-               *pmx -= (unsigned short)character;
+              *pmx -= getOtherValue(str2);
             }
          }else if(pmhl != nullptr){
             if(pnhl != nullptr){
                *pmhl -= *pnhl;
             }
                // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1){
-               if((*it).character){
-                  *pmhl -= (int8_t)((*it).character); 
-               }else{
-                  *pmhl -= (int8_t)((*it).value); 
-               }
-
-            }else if(isVariableFound2){
-               if((*it2).character){
-                  *pmhl -= (int8_t)((*it2).character); 
-               }else{
-                  *pmhl -= (int8_t)((*it2).value); 
-               }
-
-
-            }else if(str2.at(str2.length()-1) == 'h'){
-               str2 = str2.substr(0,str2.length()-1);
-               *pmhl -= (int8_t)stoi(str2);
-            }else if((48 <= str2.at(0) && str2.at(0) <= 57)){
-               if(str2.at(str2.length()-1) == 'd'){
-                  str2 = str2.substr(0,str2.length()-1);
-               }
-               *pmhl -= (int8_t)stoi(str2);
+            else if(isVariableFound1 || isVariableFound2){
+               *pmhl -= getVariableValue(isVariableFound1,isVariableFound2,it,it2);
             }else{
-               if(str2.at(0) == '\''){
-                  character = str2.at(1);
-               }else if(str2.at(0) == '\"'){
-                  character = str2.at(1);
-               }else{
-                  character = str2.at(0);
-               }
-               *pmhl -= (int8_t)character;
+              *pmhl -= getOtherValue(str2);
             }
          }
 }
@@ -750,80 +586,20 @@ void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
                comparison(*pmx,*pnx);
             }
                // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1){
-               if((*it).character){
-                  comparison(*pmx,(int8_t)((*it).character));
-               }else{
-                  comparison(*pmx,(int8_t)((*it).value));
-               }
-            }else if(isVariableFound2){
-               if((*it2).character){
-                  comparison(*pmx,(unsigned short)((*it2).character));
-               }else{
-                  comparison(*pmx,(unsigned short)((*it2).value));
-               }
-            }
-            
-            else if(str2.at(str2.length()-1) == 'h'){
-               str2 = str2.substr(0,str2.length()-1);
-               comparison(*pmx,(unsigned short)stoi(str2));
-
-            }else if((48 <= str2.at(0) && str2.at(0) <= 57)){
-               if(str2.at(str2.length()-1) == 'd'){
-                  str2 = str2.substr(0,str2.length()-1);
-               }
-               comparison(*pmx,(unsigned short)stoi(str2));
-               
+            else if(isVariableFound1 || isVariableFound2){
+               comparison(*pmx,getVariableValue(isVariableFound1,isVariableFound2,it,it2));
             }else{
-               
-               if(str2.at(0) == '\''){
-                  character = str2.at(1);
-               }else if(str2.at(0) == '\"'){
-                  character = str2.at(1);
-               }else{
-                  character = str2.at(0);
-               }
-               comparison(*pmx,(int8_t)character);
-
+               comparison(*pmx,getOtherValue(str2));
             }
          }else if(pmhl != nullptr){
             if(pnhl != nullptr){
                comparison(*pmhl,*pnhl);
             }
                // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1){
-               if((*it).character){
-                  comparison(*pmhl,(int8_t)((*it).character));
-               }else{
-                  comparison(*pmhl,(int8_t)((*it).value));
-               }
-
-            }else if(isVariableFound2){
-               if((*it2).character){
-                  comparison(*pmhl,(int8_t)((*it2).character));
-               }else{
-                  comparison(*pmhl,(int8_t)((*it2).value));
-               }
-
-
-            }else if((48 <= str2.at(0) && str2.at(0) <= 57)){
-               if(str2.at(str2.length()-1) == 'd'){
-                  str2 = str2.substr(0,str2.length()-1);
-               }else if((str2.at(str2.length()-1) == 'h')){
-                  str2 = str2.substr(0,str2.length()-1);
-               }
-               comparison(*pmhl,(int8_t)hexToDec(str2));
+            else if(isVariableFound1 || isVariableFound2){
+              comparison(*pmhl,getVariableValue(isVariableFound1,isVariableFound2,it,it2));
             }else{
-               
-               if(str2.at(0) == '\''){
-                  character = str2.at(1);
-               }else if(str2.at(0) == '\"'){
-                  character = str2.at(1);
-               }else{
-                  character = str2.at(0);
-               }
-               character = str2.at(0);
-               comparison(*pmhl,(int8_t)character);
+              comparison(*pmhl,getOtherValue(str2));
             }
          }
 }
@@ -857,46 +633,9 @@ void comparison(unsigned short firstValue,unsigned short secondValue){
    }
 
 }
-//  MOVE REG TO REG
-template <class regtype> 
-void movRegToReg(regtype *preg1,regtype *preg2) 
-{
-     *preg1 = *preg2 ; 
-}
-
-//  INCREASE REG
-template <class regtype> 
-void incReg(regtype *preg1) 
-{
-     *preg1++ ; 
-}
-
-//  DECREASE REG
-template <class regtype> 
-void decReg(regtype *preg1) 
-{
-     *preg1-- ; 
-}
-
-//  MULTIPLY REG
-template <class regtype> 
-void mulReg(regtype *preg1) 
-{
-    *pax =  (*pax) * (*preg1);
-}
-
-//  DIVIDE REG
-template <class regtype> 
-void divReg(regtype *preg1) 
-{
-     *preg1++ ; 
-}
-
-
 
 // INPUT PARSING
 void parseInput(string& line,ifstream& inFile){
-   trim(line);
    bool isDb = line.find("db") != string::npos;
    bool isDw = line.find("dw") != string::npos;
    if(isDb || isDw){
@@ -908,22 +647,15 @@ void parseInput(string& line,ifstream& inFile){
    }
 
 
-   // if(checkSpace(line) || checkQuotationMarks(line) || checkComma(line)){
-
-   // }
-
-
    istringstream linestream(line);
 
    bool space = line.find(' ') != string::npos;
    if(space){
-      getline(linestream,firstWord,' ');
-      getline(linestream,secondWord,',');
-      getline(linestream,thirdWord);
-      // cout << "FirstWord : " << firstWord << " - Second Word : " << secondWord << " - thirdWord : " << thirdWord << endl;
+      getLinestreamLine(linestream,firstWord,' ');
+      getLinestreamLine(linestream,secondWord,' ');
+      getLinestreamLine(linestream,firstWord,' ');
    }
-   // bool comma = line.find(',') != string::npos;
-   // bool semicolon = line.find(':') != string::npos;
+
 }
 
 // VARIABLES
@@ -931,19 +663,19 @@ void db(string& line){
    istringstream linestream(line);
    string temp,firstWord,secondWord,thirdWord,forthWord,fifthWord,sixthWord,seventhWord = "";
    if(checkSpace(line)){
-      getline(linestream,firstWord,' ');
-      getline(linestream,secondWord,' ');
-      getline(linestream,thirdWord,' ');
-      getline(linestream,forthWord,' ');
-      getline(linestream,fifthWord,' ');
+      getLinestreamLine(linestream,firstWord,' ');
+      getLinestreamLine(linestream,secondWord,' ');
+      getLinestreamLine(linestream,thirdWord,' ');
+      getLinestreamLine(linestream,forthWord,' ');
+      getLinestreamLine(linestream,fifthWord,' ');
       // cout << "FirstWord : " << firstWord << " - Second Word : " << secondWord << " - thirdWord : " << thirdWord << " - ForthWord : " << forthWord << " - FIfth Word : " << fifthWord << endl;
       
 
       if(secondWord == "db"){
          dbVariable variable;
          variable.name = firstWord;
-         if(checkQuotationMarks(thirdWord)){
-            variable.character = thirdWord.at(0);
+         if(checkQuotationMarks(thirdWord) || checkSingleQuotationMark(thirdWord)){
+            variable.character = thirdWord.at(1);
          }else{
             variable.value = stoi(thirdWord);
          }
@@ -951,7 +683,7 @@ void db(string& line){
       }else{
          dwVariable variable;
          variable.name = firstWord;
-         if(checkQuotationMarks(thirdWord)){
+         if(checkQuotationMarks(thirdWord) || checkSingleQuotationMark(thirdWord)){
             variable.character = thirdWord.at(0);
          }else{
             variable.value = stoi(thirdWord);
@@ -967,9 +699,7 @@ void db(string& line){
 // LABELS
 void getLabelContent(Label& label,ifstream& inFile){
    string firstLine;
-   getline(inFile,firstLine);
-   trim(firstLine);
-   toLower(firstLine);
+   getLineTrimLower(inFile,firstLine);
    while(!checkint20h(firstLine) && !checkSemiColon(firstLine)){
       if(firstLine != "\r") label.content.push_back(firstLine);
       getLineTrimLower(inFile,firstLine);
@@ -1001,6 +731,7 @@ void createLabel(ifstream& inFile,string& stringName){
 void getLineTrimLower(ifstream& inFile,string& firstLine){
    getline(inFile,firstLine);
    trim(firstLine);
+   if(firstLine.find("\r") != string::npos) firstLine = firstLine.substr(0,firstLine.length()-1);
    toLower(firstLine);
    
 }
@@ -1018,6 +749,14 @@ inline std::string trim(std::string& str) {
     str.erase(0, str.find_first_not_of(' '));       //prefixing spaces
     str.erase(str.find_last_not_of(' ')+1);         //surfixing spaces
     return str;
+}
+
+inline string getLinestreamLine(istringstream& linestream,string& word,char option) {
+   do{
+      getline(linestream,word,option);
+      if(!linestream) break;
+   }while(word == "");
+    return word;
 }
 
 // PRINT VARIABLES
@@ -1075,6 +814,9 @@ bool checkSpace(string& line){
 bool checkQuotationMarks(string& line){
    return line.find('"') != string::npos;
 }
+bool checkSingleQuotationMark(string& line) {
+   return line.find('\'') != string::npos;
+}
 bool checkComma(string& line){
    return line.find(',') != string::npos;
 }
@@ -1083,6 +825,9 @@ bool checkSemiColon(string& line){
 }
 bool checkint20h(string& line){
    return line.find("int 20h") != string::npos;
+}
+bool checkBrackets(string& line) {
+   return line.find('[') != string::npos && line.find(']') != string::npos;
 }
 //       E N D   C H E C K S
 
@@ -1133,11 +878,7 @@ string decToHex(int n) {
 } 
 
 
-template <class regtype> 
-void mov_reg_reg(regtype *preg1,regtype *preg2) 
-{
-     *preg1 = *preg2 ; 
-}
+
 
 template <class datatype> 
 void print_bits(datatype x)
@@ -1163,6 +904,16 @@ void print_16bitregs()
 {
    printf("AX:%04x\n",ax); 
    printf("BX:%04x\n",bx); 
+   printf("CX:%04x\n",cx); 
+   printf("DX:%04x\n",dx); 
+   printf("AH:%04x\n",*pah); 
+   printf("AL:%04x\n",*pal); 
+   printf("BH:%04x\n",*pbh); 
+   printf("BL:%04x\n",*pbl); 
+   printf("CH:%04x\n",*pch); 
+   printf("CL:%04x\n",*pcl); 
+   printf("DH:%04x\n",*pdh); 
+   printf("DL:%04x\n",*pdl); 
    printf("SP:%04x\n",sp); 
 }
 
