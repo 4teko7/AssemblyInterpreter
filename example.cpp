@@ -186,7 +186,7 @@ void processLabels(int index){
          twoWordsComma(linestream,secondWord,thirdWord);
          processTwoWordsInstructions(firstWord,secondWord,thirdWord);
       }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop"){
-         getline(linestream,secondWord);
+         getLinestreamLine(linestream,secondWord,' ');
          processOneWordInstructions(firstWord,secondWord);
       }else if(firstWord == "xor"){
          
@@ -241,7 +241,9 @@ void processLabels(int index){
 }
 void twoWordsComma(istringstream& linestream,string& secondWord, string& thirdWord){
    getline(linestream,secondWord,',');
+   trim(secondWord);
    getline(linestream,thirdWord);
+   trim(thirdWord);
 }
 
 
@@ -267,10 +269,12 @@ void processOneWordInstructions(string& option, string& str1){
       }else if(decToHex(*pah) == "A"){
          cin >> fromKeyboard;
          *pdx = 255;
+      }else if(decToHex(*pah) == "4C"){
+         exit(*pal);
       }
       cout.flush();
    }else if(option == "int" && str1 == "20h"){
-
+      print_16bitregs(); 
    }else if(option == "div"){
       *pax /= (unsigned short)determineValueOfInstruction(str1);
    }else if(option == "mul"){
@@ -490,7 +494,7 @@ int getOtherValue(string &str1) {
       
       if(str1.at(0) == '\''){
          character = str1.at(1);
-      }else if(str1.at(0) == '\"'){
+      }else if(str1.at(0) == '"' || str1.at(0) == '\\' || str1.at(0) == '\"'){
          character = str1.at(1);
       }else{
          character = str1.at(0);
@@ -684,7 +688,7 @@ void db(string& line){
          dwVariable variable;
          variable.name = firstWord;
          if(checkQuotationMarks(thirdWord) || checkSingleQuotationMark(thirdWord)){
-            variable.character = thirdWord.at(0);
+            variable.character = thirdWord.at(1);
          }else{
             variable.value = stoi(thirdWord);
          }
@@ -700,17 +704,18 @@ void db(string& line){
 void getLabelContent(Label& label,ifstream& inFile){
    string firstLine;
    getLineTrimLower(inFile,firstLine);
-   while(!checkint20h(firstLine) && !checkSemiColon(firstLine)){
-      if(firstLine != "\r") label.content.push_back(firstLine);
+   while(!checkSemiColon(firstLine)){
+      if(firstLine != "\r" && firstLine != "") label.content.push_back(firstLine);
+      if(checkint20h(firstLine)) {
+         isint20h = true;
+         break;
+         }
       getLineTrimLower(inFile,firstLine);
 
    }
    labels.push_back(label);
-   if(checkSemiColon(firstLine)){
+   if(checkSemiColon(firstLine) && !isint20h){
       createLabel(inFile,firstLine);
-   }
-   if(checkint20h(firstLine)){
-      isint20h = true;
    }
 }
 
@@ -756,6 +761,7 @@ inline string getLinestreamLine(istringstream& linestream,string& word,char opti
       getline(linestream,word,option);
       if(!linestream) break;
    }while(word == "");
+      trim(word);
     return word;
 }
 
