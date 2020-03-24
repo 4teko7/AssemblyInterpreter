@@ -6,7 +6,6 @@
 #include <algorithm>
 #include<stdlib.h>
 #include<math.h>
-
 // prototypes 
 template <class datatype> void print_bits(datatype x) ; 
 template <class datatype> void print_hex(datatype x) ; 
@@ -209,14 +208,9 @@ void processLabels(int index){
       }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop"){
          getLinestreamLine(linestream,secondWord,' ');
          processOneWordInstructions(firstWord,secondWord);
-      }else if(firstWord == "xor"){
-         
-      }else if(firstWord == "or"){
-         
-      }else if(firstWord == "and"){
-         
-      }else if(firstWord == "not"){
-         
+      }else if(firstWord == "xor" || firstWord == "or" || firstWord == "and" || firstWord == "not"){
+         twoWordsComma(linestream,secondWord,thirdWord);
+         processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
       }else if(firstWord == "rcl"){
          
       }else if(firstWord == "rcr"){
@@ -367,6 +361,49 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
          sub(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3,pmhl,pnhl);
       }else if(option == "cmp"){
          cmp(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3,pmhl,pnhl);
+      }else if(option == "or"){
+         int8_t eightBit = 0;
+         unsigned short first = determineValueOfInstruction(str1);
+         unsigned short second = determineValueOfInstruction(str2);
+         unsigned short result = first | second;
+         pnx = &result;
+         eightBit = (int8_t)result;
+         pnhl = &eightBit;
+         move(pmx,pnx,it,it2,firstIt,firstIt2,isVariableFound1,isVariableFound2,isFirstVariableFound1,isFirstVariableFound2,str2,str3,pmhl,pnhl);
+
+      }else if(option == "and"){
+         int8_t eightBit = 0;
+         unsigned short first = determineValueOfInstruction(str1);
+         unsigned short second = determineValueOfInstruction(str2);
+         unsigned short result = first & second;
+         pnx = &result;
+         eightBit = (int8_t)result;
+         pnhl = &eightBit;
+         move(pmx,pnx,it,it2,firstIt,firstIt2,isVariableFound1,isVariableFound2,isFirstVariableFound1,isFirstVariableFound2,str2,str3,pmhl,pnhl);
+
+      }else if(option == "xor"){
+         int8_t eightBit = 0;
+         unsigned short first = determineValueOfInstruction(str1);
+         unsigned short second = determineValueOfInstruction(str2);
+         unsigned short result = first ^ second;
+         pnx = &result;
+         eightBit = (int8_t)result;
+         pnhl = &eightBit;
+         move(pmx,pnx,it,it2,firstIt,firstIt2,isVariableFound1,isVariableFound2,isFirstVariableFound1,isFirstVariableFound2,str2,str3,pmhl,pnhl);
+
+      }else if(option == "not"){
+         int8_t eightBit = 0;
+         unsigned short first = determineValueOfInstruction(str1);
+         unsigned short result = ~first;
+         pnx = &result;
+         eightBit = (int8_t)result;
+         pnhl = &eightBit;
+         move(pmx,pnx,it,it2,firstIt,firstIt2,isVariableFound1,isVariableFound2,isFirstVariableFound1,isFirstVariableFound2,str2,str3,pmhl,pnhl);
+
+      }else if(option == "rcl"){
+     
+      }else if(option == "rcr"){
+     
       }
 
 
@@ -374,7 +411,85 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
 
 
 
+
    }
+
+void orOfValues(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isVariableFound1,bool& isVariableFound2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl) {
+
+   char character;
+   if(pmx != nullptr){
+      if(pnx != nullptr){
+
+      }else if(pnhl != nullptr){
+
+      }else if(isVariableFound1){
+
+      }else if(isVariableFound2){
+
+      }else{
+
+      }
+   }else if(pmhl != nullptr){
+      if(pnx != nullptr){
+
+      }else if(pnhl != nullptr){
+
+      }else if(isVariableFound1){
+
+      }else if(isVariableFound2){
+
+      }else{
+         
+      }
+   }else if(isFirstVariableFound1){
+      if(pnx != nullptr){
+
+      }else if(pnhl != nullptr){
+
+      }else if(isVariableFound1){
+
+      }else if(isVariableFound2){
+
+      }else{
+         
+      }
+   }else if(isFirstVariableFound2){
+      if(pnx != nullptr){
+
+      }else if(pnhl != nullptr){
+
+      }else if(isVariableFound1){
+
+      }else if(isVariableFound2){
+
+      }else{
+         
+      }
+   }else{
+      if(pnx != nullptr){
+
+      }else if(pnhl != nullptr){
+
+      }else if(isVariableFound1){
+
+      }else if(isVariableFound2){
+
+      }else{
+         
+      }
+  
+   }
+   // moveValueToReg(&pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3);
+   // else if(pmhl != nullptr){
+   //    moveValueToReg(&pmhl,pnhl,it,it2,isVariableFound1,isVariableFound2,str2,str3);
+   // }else if(isFirstVariableFound1){
+   //    if(pnhl != nullptr) moveValueToVariable(firstIt,pnhl,it,it2,isVariableFound1,isVariableFound2,str2,str3);
+   //    else moveValueToVariable(firstIt,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3);
+   // }else if(isFirstVariableFound2){
+   //    if(pnhl != nullptr) moveValueToVariable(firstIt2,pnhl,it,it2,isVariableFound1,isVariableFound2,str2,str3);
+   //    else moveValueToVariable(firstIt2,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3);
+   // }
+}
 
 void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2) {
 
@@ -431,7 +546,7 @@ void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg,bool& isVaria
 
 
 int determineValueOfInstruction(string &reg) {
-   int result;
+   int result = 0;
    std::vector<dbVariable>::iterator it;
    std::vector<dwVariable>::iterator it2;
 
