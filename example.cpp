@@ -106,6 +106,7 @@ vector<Label> labels;
 bool isint20h = false;
 vector<string> afterCompare;
 bool isJustAfterCompare = false;
+bool lineWithoutLabel = false;
 
 // FUNCTIONS
 void db(string& line);
@@ -116,18 +117,19 @@ bool checkSingleQuotationMark(string& line);
 bool checkComma(string& line);
 bool checkSemiColon(string& line);
 bool checkint20h(string& line);
-void getLabelContent(Label& label,ifstream& inFile);
+void getLabelContent(Label& label,ifstream& inFile,string& line);
 void createLabel(ifstream& inFile,string& labelName);
 void getLineTrimLower(ifstream& inFile,string& firstLine);
 void printLabels();
 void printVariables();
 void twoWordsComma(istringstream& linestream,string& secondWord, string& thirdWord);
-void processTwoWordsInstructions(string& option, string& str1,string& str2);
+void thirdWordsComma(istringstream& linestream,string& secondWord, string& thirdWord, string& forthWord);
+void processTwoWordsInstructions(string& option, string& str1,string& str2,string& str3);
 void processOneWordInstructions(string& option, string& str1);
 void processLabels(int index);
-void move(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl);
-void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl);
-void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl);
+void move(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl);
+void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl);
+void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl);
 unsigned short hexToDec(std::string hexString);
 string decToHex(int n);
 void toUpper(string& firstLine);
@@ -137,13 +139,15 @@ inline std::string trim(std::string& str);
 int determineValueOfInstruction(string &reg);
 void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg);
 int getIndexOfLabel(string & labelName);
-void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl);
+void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl);
 void comparison(unsigned short firstValue,unsigned short secondValue);
 int getOtherValue(string &str1);
 int getVariableValue(string &str1);
-unsigned short getVariableValue(bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2);
+unsigned short getVariableValue(bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str3);
 bool checkBrackets(string& line);
 inline string getLinestreamLine(istringstream& linestream,string& word,char option);
+void determineLabelVariables();
+void createLinesWithoutLabels(ifstream& inFile,string& stringName);
 int main() {
 
     // Open the input and output files, check for failures
@@ -156,14 +160,29 @@ int main() {
    string firstLine;
    getLineTrimLower(inFile,firstLine);
 
-   while(!checkint20h(firstLine) && !isint20h){
+   while(!checkint20h(firstLine) && !inFile.eof()){
       parseInput(firstLine,inFile);  
       getLineTrimLower(inFile,firstLine);
    }
-
+   determineLabelVariables();
    processLabels(0);
 }
 
+
+
+void determineLabelVariables(){
+   string line = "";
+   std::vector<string>::iterator it;
+   for (int i = 0; i < labels.size(); i++) {
+   for (it = labels.at(i).content.begin(); it != labels.at(i).content.end(); it++) {
+      line = *it;
+      if(line.find("db") != string::npos || line.find("dw") != string::npos){
+         line = labels.at(i).name + " " + line;
+         db(line);
+      }
+      }
+   }
+}
 void processLabels(int index){
    int index2 = -1;
    string line = "";
@@ -182,9 +201,12 @@ void processLabels(int index){
          isJustAfterCompare = false;
          afterCompare.clear();
       }  
+      
       if(firstWord == "mov" || firstWord == "add" || firstWord == "sub"){
-         twoWordsComma(linestream,secondWord,thirdWord);
-         processTwoWordsInstructions(firstWord,secondWord,thirdWord);
+            
+         if(line.find("offset") != string::npos) thirdWordsComma(linestream,secondWord,thirdWord,forthWord);
+         else twoWordsComma(linestream,secondWord,thirdWord);
+         processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
       }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop"){
          getLinestreamLine(linestream,secondWord,' ');
          processOneWordInstructions(firstWord,secondWord);
@@ -208,7 +230,7 @@ void processLabels(int index){
          
       }else if(firstWord == "cmp"){
          twoWordsComma(linestream,secondWord,thirdWord);
-         processTwoWordsInstructions(firstWord,secondWord,thirdWord);
+         processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
          isJustAfterCompare = true;
       }else if(firstWord.at(0) == 'j'){
          getLinestreamLine(linestream,secondWord,' ');
@@ -246,6 +268,12 @@ void twoWordsComma(istringstream& linestream,string& secondWord, string& thirdWo
    trim(thirdWord);
 }
 
+void thirdWordsComma(istringstream& linestream,string& secondWord, string& thirdWord, string& forthWord){
+   getLinestreamLine(linestream,secondWord,',');
+   getLinestreamLine(linestream,forthWord,' ');
+   getLinestreamLine(linestream,thirdWord,' ');
+}
+
 
 void processOneWordInstructions(string& option, string& str1){
    if(option == "int" && str1 == "21h"){
@@ -253,9 +281,9 @@ void processOneWordInstructions(string& option, string& str1){
          char temp;
          cin >> temp;
          *pal = (int8_t)temp;
-         cout << *pal;
+         cout << (char)(*pal);
       }else if(decToHex(*pah) == "2"){
-         cout << (*pdl) ;
+         cout << (char)(*pdl) ;
       }else if(decToHex(*pah) == "8"){
          char temp;
          cin >> temp;
@@ -264,7 +292,7 @@ void processOneWordInstructions(string& option, string& str1){
          if(*pdx == 255){
             cout << fromKeyboard;
          }else{
-            cout << *pdx;
+            cout << (char)(*pdx);
          }
       }else if(decToHex(*pah) == "A"){
          cin >> fromKeyboard;
@@ -304,7 +332,7 @@ void processOneWordInstructions(string& option, string& str1){
 
 
 // PROCESS INSTRUCTIONS
-void processTwoWordsInstructions(string& option, string& str1,string& str2){
+void processTwoWordsInstructions(string& option, string& str1,string& str2,string& str3){
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
       int8_t *pmhl = nullptr;
@@ -319,7 +347,7 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2){
 
       determineReg(&pmx,&pmhl,str1);
       determineReg(&pnx,&pnhl,str2);
-
+      if(str2.find('[') != string::npos && str2.find(']') != string::npos) str2 = str2.substr(str2.find_first_of('[')+1,str2.find_last_of(']'));
       for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
          if(str2 == (*it).name){
             isVariableFound1 = true;
@@ -337,13 +365,13 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2){
       }
       }
       if(option == "mov"){
-         move(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,pmhl,pnhl);
+         move(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3,pmhl,pnhl);
       }else if(option == "add"){
-         add(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,pmhl,pnhl);
+         add(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3,pmhl,pnhl);
       }else if(option == "sub"){
-         sub(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,pmhl,pnhl);
+         sub(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3,pmhl,pnhl);
       }else if(option == "cmp"){
-         cmp(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,pmhl,pnhl);
+         cmp(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3,pmhl,pnhl);
       }
 
 
@@ -456,11 +484,14 @@ int determineValueOfInstruction(string &reg) {
    return result;
 }
 
-unsigned short getVariableValue(bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2) {
-   unsigned short result = 0;
+
+// WE SHOULD ADD CONDITION FOR OFFSET OF THE VARIABLE
+unsigned short getVariableValue(bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str3) {
+   short result = 0;
    if(isVariableFound1){
       if((*it).character){
          result= (int8_t)((*it).character); 
+         // *pax = *(unsigned  short *) ( ( (unsigned short *) &((it))) + 1);
       }else{
          result = (int8_t)((*it).value); 
       }
@@ -473,6 +504,7 @@ unsigned short getVariableValue(bool& isVariableFound1,bool& isVariableFound2,st
    }
    return result;
 }
+
 
 // If Decimal,HexaDecimal and Character But Not Reg,Not Variable
 int getOtherValue(string &str1) {
@@ -504,7 +536,7 @@ int getOtherValue(string &str1) {
       return result;
 }
 //     M O V E    F U N C T I O N
-void move(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl){
+void move(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl){
          char character;
          if(pmx != nullptr){
             if(pnx != nullptr){
@@ -512,7 +544,7 @@ void move(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::itera
             }
                // VARIABLE WILL BE MOVED.
             else if(isVariableFound1 || isVariableFound2){
-               *pmx = getVariableValue(isVariableFound1,isVariableFound2,it,it2);
+               *pmx = getVariableValue(isVariableFound1,isVariableFound2,it,it2,str3);
             }
             else{
               *pmx = getOtherValue(str2);
@@ -524,14 +556,14 @@ void move(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::itera
             }
                // VARIABLE WILL BE MOVED.
             else if(isVariableFound1 || isVariableFound2){
-               *pmhl = getVariableValue(isVariableFound1,isVariableFound2,it,it2);
+               *pmhl = getVariableValue(isVariableFound1,isVariableFound2,it,it2,str3);
             }else{
               *pmhl = getOtherValue(str2);
             }
          }
 }
 
-void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl){
+void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl){
    char character;
    if(pmx != nullptr){
             if(pnx != nullptr){
@@ -539,7 +571,7 @@ void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
             }
                // VARIABLE WILL BE MOVED.
             else if(isVariableFound1 || isVariableFound2){
-               *pmx += getVariableValue(isVariableFound1,isVariableFound2,it,it2);
+               *pmx += getVariableValue(isVariableFound1,isVariableFound2,it,it2,str3);
             }else{
               *pmx += getOtherValue(str2);
             }
@@ -551,14 +583,14 @@ void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
             }
                // VARIABLE WILL BE MOVED.
             else if(isVariableFound1 || isVariableFound2){
-               *pmhl += getVariableValue(isVariableFound1,isVariableFound2,it,it2);
+               *pmhl += getVariableValue(isVariableFound1,isVariableFound2,it,it2,str3);
             }else{
               *pmhl += getOtherValue(str2);
             }
          }
 }
 
-void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl){
+void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl){
    char character;
    if(pmx != nullptr){
             if(pnx != nullptr){
@@ -566,7 +598,7 @@ void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
             }
                // VARIABLE WILL BE MOVED.
             else if(isVariableFound1 || isVariableFound2){
-               *pmx -= getVariableValue(isVariableFound1,isVariableFound2,it,it2);
+               *pmx -= getVariableValue(isVariableFound1,isVariableFound2,it,it2,str3);
             }else{
               *pmx -= getOtherValue(str2);
             }
@@ -576,14 +608,14 @@ void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
             }
                // VARIABLE WILL BE MOVED.
             else if(isVariableFound1 || isVariableFound2){
-               *pmhl -= getVariableValue(isVariableFound1,isVariableFound2,it,it2);
+               *pmhl -= getVariableValue(isVariableFound1,isVariableFound2,it,it2,str3);
             }else{
               *pmhl -= getOtherValue(str2);
             }
          }
 }
 
-void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,int8_t *pmhl,int8_t *pnhl){
+void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl){
          char character;
          if(pmx != nullptr){
             if(pnx != nullptr){
@@ -591,7 +623,7 @@ void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
             }
                // VARIABLE WILL BE MOVED.
             else if(isVariableFound1 || isVariableFound2){
-               comparison(*pmx,getVariableValue(isVariableFound1,isVariableFound2,it,it2));
+               comparison(*pmx,getVariableValue(isVariableFound1,isVariableFound2,it,it2,str3));
             }else{
                comparison(*pmx,getOtherValue(str2));
             }
@@ -601,7 +633,7 @@ void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
             }
                // VARIABLE WILL BE MOVED.
             else if(isVariableFound1 || isVariableFound2){
-              comparison(*pmhl,getVariableValue(isVariableFound1,isVariableFound2,it,it2));
+              comparison(*pmhl,getVariableValue(isVariableFound1,isVariableFound2,it,it2,str3));
             }else{
               comparison(*pmhl,getOtherValue(str2));
             }
@@ -640,25 +672,19 @@ void comparison(unsigned short firstValue,unsigned short secondValue){
 
 // INPUT PARSING
 void parseInput(string& line,ifstream& inFile){
+   if(line.find("code segment") != string::npos || line.find("code ends") != string::npos) return;
    bool isDb = line.find("db") != string::npos;
    bool isDw = line.find("dw") != string::npos;
+   if(line == "") return;
    if(isDb || isDw){
       db(line);
-      return;
-   }
-   if(checkSemiColon(line)){
+      
+   }else if(checkSemiColon(line)){
       createLabel(inFile,line);
+   }else{
+      createLinesWithoutLabels(inFile,line);
    }
 
-
-   istringstream linestream(line);
-
-   bool space = line.find(' ') != string::npos;
-   if(space){
-      getLinestreamLine(linestream,firstWord,' ');
-      getLinestreamLine(linestream,secondWord,' ');
-      getLinestreamLine(linestream,firstWord,' ');
-   }
 
 }
 
@@ -701,20 +727,25 @@ void db(string& line){
 
 
 // LABELS
-void getLabelContent(Label& label,ifstream& inFile){
-   string firstLine;
-   getLineTrimLower(inFile,firstLine);
+void getLabelContent(Label& label,ifstream& inFile,string& line){
+   string firstLine = line;
+   if(!lineWithoutLabel) getLineTrimLower(inFile,firstLine);
    while(!checkSemiColon(firstLine)){
+      if(firstLine.find("code segment") != string::npos || firstLine.find("code ends") != string::npos) break;
+      if(firstLine.substr(0,2) != "db" && firstLine.substr(0,2) != "dw" && (firstLine.find("db") != string::npos || firstLine.find("dw") != string::npos)) {
+         db(firstLine);
+         if(inFile.eof()) break;
+         getLineTrimLower(inFile,firstLine);
+         continue;
+      }
       if(firstLine != "\r" && firstLine != "") label.content.push_back(firstLine);
-      if(checkint20h(firstLine)) {
-         isint20h = true;
-         break;
-         }
+      if(inFile.eof()) break;
       getLineTrimLower(inFile,firstLine);
 
    }
    labels.push_back(label);
-   if(checkSemiColon(firstLine) && !isint20h){
+   lineWithoutLabel = false;
+   if(checkSemiColon(firstLine)){
       createLabel(inFile,firstLine);
    }
 }
@@ -725,11 +756,17 @@ void createLabel(ifstream& inFile,string& stringName){
    getline(linestream,labelName,':');
    Label label;
    label.name = labelName;
-   
-   getLabelContent(label,inFile);
+   getLabelContent(label,inFile,stringName);
    
 }
 
+void createLinesWithoutLabels(ifstream& inFile,string& stringName){
+   string labelName = "";
+   Label label;
+   label.name = "Without Labels";
+   lineWithoutLabel = true;
+   getLabelContent(label,inFile,stringName);
+}
 
 //  GETLINE - TRIM - toLOWERCASE
 
