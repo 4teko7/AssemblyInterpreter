@@ -1,19 +1,18 @@
-aaBas db '9'
-mov al,aaBas
-mov bl,[aaBas]
-mov cl,[0054h]
-mov dl,offset aaBas
+alti db '6'
+yedi db '7'
+mov [0090h],10
+mov [0091h],alti
+mov [0090],offset yedi
+mov [0090],[0091h]
+mov al,[0090h]
+mov bl,[yedi]
+mov cl,[0090h]
+mov dl,offset yedi
 label:
 mov ah,02h
 mov dl,'9'
 int 21h
 int 20h
-
-
-msg1 db '9'
-msg2 dw 'w'
-msg3 db 9
-msg4 dw 9
-msg5:
-    db '1'
+int 20h
+int 20h
 
