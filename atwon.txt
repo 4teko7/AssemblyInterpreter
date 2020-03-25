@@ -1,28 +1,19 @@
-mshBas db 1
-code segment
-    mov bx,offset msg1
-    mov cx,11d
-    mov ah,09h
-more:
-    mov dx,bx
-    msg db 8
-    int 21h
-    mov ah,09
-    mov dx,offset cr
-    int 21h
-    mov ah,02
-    mov dl,0D
-    int 21h
-    mov ah,09h
-    inc bx
-    dec cx
-    jnz more
-    int 20h ; exit to dos
+aaBas db '9'
+mov al,aaBas
+mov bl,[aaBas]
+mov cl,[0054h]
+mov dl,offset aaBas
+label:
+mov ah,02h
+mov dl,'9'
+int 21h
+int 20h
 
-code ends
 
-msg1:
-    db 'o'
-cr:
-    dw 10,13,"$"
-msgDis db 9
+msg1 db '9'
+msg2 dw 'w'
+msg3 db 9
+msg4 dw 9
+msg5:
+    db '1'
+

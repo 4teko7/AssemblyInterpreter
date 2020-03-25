@@ -77,12 +77,14 @@ using namespace std;
 
 struct dbVariable{
     string name;
+    int address = 0;
     int8_t value = 0;
 };
 
 
 struct dwVariable{
     string name;
+    int address = 0;
     unsigned short value = 0;
 };
 
@@ -103,7 +105,10 @@ vector<string> afterCompare;
 bool isJustAfterCompare = false;
 bool lineWithoutLabel = false;
 int numberOfLinesWithoutVariables = 0;
-vector<string> queueOfVariables;
+// Pair<Pair<nameOfVariable,Pair<typeOfVariable,balueOfVariable>>,addressOfVariable>
+// nameOfVariable - typeOfVariable
+vector<pair<string,string>> queueOfVariables;
+
 
 // FUNCTIONS
 void createDbOrDw(string& line);
@@ -146,7 +151,11 @@ void determineLabelVariables();
 void createLinesWithoutLabels(ifstream& inFile,string& stringName);
 template <class regOne, class regTwo>  void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3);
 template <class regOne, class regTwo>  void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3);
-
+void constructMemory();
+void setVariableAddress(string& variable,int address);
+int getVariableAddress(string& variable);
+int getVariableValueForMemoryAddress(int&  address);
+string cleanVariable(string variable);
 int main() {
 
     // Open the input and output files, check for failures
@@ -164,10 +173,50 @@ int main() {
       getLineTrimLower(inFile,firstLine);
    }
    determineLabelVariables();
+   constructMemory();
    processLabels(0);
 }
 
 
+void constructMemory(){
+   cout << sizeof(memory)/sizeof(*memory) << endl;
+   vector<pair<string,string>>::iterator it;
+   int address = 0;
+   int whereAddressLeft = numberOfLinesWithoutVariables * 6;
+   for (it = queueOfVariables.begin(); it != queueOfVariables.end(); it++) {
+      setVariableAddress((*it).first,whereAddressLeft);
+      if((*it).second == "dw") whereAddressLeft +=2;
+      else if((*it).second == "db") whereAddressLeft +=1;
+   }
+   
+}
+
+void setVariableAddress(string& variable,int address){
+      std::vector<dbVariable>::iterator it;
+      std::vector<dwVariable>::iterator it2;
+      bool isVariableFound1 = false;
+      bool isVariableFound2 = false;
+      for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
+         if(variable == (*it).name){
+            (*it).address = address;
+            memory[address] = (*it).value;
+            isVariableFound1 = true;
+            break;
+         }
+
+      }
+      if(!isVariableFound1){
+      for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++)
+      {
+         if(variable == (*it2).name){
+            (*it2).address = address;
+            memory[address] = (*it2).value;
+            isVariableFound2 = true;
+            break;
+         }
+      }
+      }
+}
 
 void determineLabelVariables(){
    string line = "";
@@ -177,7 +226,7 @@ void determineLabelVariables(){
       if(labels.at(i).name != "Without Labels") numberOfLinesWithoutVariables += 1;
    for (it = labels.at(i).content.begin(); it != labels.at(i).content.end(); it++) {
       line = *it;
-      if(line.find("int 20h")) return;
+      if(line.find("int 20h") != string::npos) return;
       }
    }
 }
@@ -247,10 +296,8 @@ void processLabels(int index){
          }
          
       }
-
-
    }
-      }
+   }
 
    if(index2 != -1) processLabels(index2);
 }
@@ -350,6 +397,7 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
    // For Register Names
 
       determineReg(&pmx,&pmhl,str1,isFirstVariableFound1,isFirstVariableFound2,firstIt,firstIt2);
+      if(str3 != "offset")
       determineReg(&pnx,&pnhl,str2,isVariableFound1,isVariableFound2,it,it2);
       
 
@@ -492,38 +540,36 @@ void orOfValues(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>:
 }
 
 void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2) {
-
-   if(reg == "ax"){
+   string resultReg = cleanVariable(reg);
+   if(resultReg == "ax"){
       *pmx = pax;
-   }else if(reg == "bx"){
+   }else if(resultReg == "bx"){
       *pmx = pbx;
-   }else if(reg == "cx"){
+   }else if(resultReg == "cx"){
       *pmx = pcx;
-   }else if(reg == "dx"){
+   }else if(resultReg == "dx"){
       *pmx = pdx;
-   }else if(reg == "ah"){
+   }else if(resultReg == "ah"){
       *pmhl = pah;
-   }else if(reg == "al"){
+   }else if(resultReg == "al"){
       *pmhl = pal;
-   }else if(reg == "bh"){
+   }else if(resultReg == "bh"){
       *pmhl = pbh;
-   }else if(reg == "bl"){
+   }else if(resultReg == "bl"){
       *pmhl = pbl;
-   }else if(reg == "ch"){
+   }else if(resultReg == "ch"){
       *pmhl = pch;
-   }else if(reg == "cl"){
+   }else if(resultReg == "cl"){
       *pmhl = pcl;
-   }else if(reg == "dh"){
+   }else if(resultReg == "dh"){
       *pmhl = pdh;
-   }else if(reg == "dl"){
+   }else if(resultReg == "dl"){
       *pmhl = pdl;
    }
 
 
-
-      if(reg.find('[') != string::npos && reg.find(']') != string::npos) reg = reg.substr(reg.find_first_of('[')+1,reg.find_last_of(']'));
       for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
-         if(reg == (*it).name){
+         if(resultReg == (*it).name){
             isVariableFound1 = true;
             break;
          }
@@ -532,7 +578,7 @@ void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg,bool& isVaria
       if(!isVariableFound1){
       for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++)
       {
-         if(reg == (*it2).name){
+         if(resultReg == (*it2).name){
             isVariableFound2 = true;
             break;
          }
@@ -543,7 +589,14 @@ void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg,bool& isVaria
 
 }
 
-
+string cleanVariable(string variable) {
+   if(variable.find('[') != string::npos && variable.find(']') != string::npos){
+      variable = variable.substr(variable.find_first_of('[')+1,variable.length());
+      variable = variable.substr(0,variable.find_last_of(']'));
+      if(variable.at(variable.length()-1) == 'h' || variable.at(variable.length()-1) == 'd') variable = variable.substr(0,variable.length()-1);
+   } 
+   return variable;
+}
 
 int determineValueOfInstruction(string &reg) {
    int result = 0;
@@ -609,6 +662,37 @@ int determineValueOfInstruction(string &reg) {
 }
 
 
+int getVariableValueForMemoryAddress(string&  address){
+   cleanVariable(address);
+   return memory[stoi(address)];
+}
+
+
+int getVariableAddress(string& variable){
+   std::vector<dbVariable>::iterator it;
+   std::vector<dwVariable>::iterator it2;
+   bool isVariableFound1 = false;
+   bool isVariableFound2 = false;
+   for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
+      if(variable == (*it).name){
+         isVariableFound1 = true;
+         break;
+      }
+
+   }
+   if(!isVariableFound1){
+   for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++)
+   {
+      if(variable == (*it2).name){
+         isVariableFound2 = true;
+         break;
+      }
+   }
+   }
+   if(isVariableFound1) return (*it).address;
+   else return (*it2).address;
+}
+
 // WE SHOULD ADD CONDITION FOR OFFSET OF THE VARIABLE
 unsigned short getVariableValue(bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str3) {
    short result = 0;
@@ -637,6 +721,8 @@ int getOtherValue(string &str1) {
          result = stoi(str1);
       }
       
+   }else if(str1.at(0) == '[' && str1.at(str1.length()-1) == ']'){
+      result = memory[stoi(cleanVariable(str1))];
    }else{
       
       if(str1.at(0) == '\''){
@@ -674,6 +760,8 @@ void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>
       // VARIABLE WILL BE MOVED.
    else if(isVariableFound1 || isVariableFound2){
       **firstReg = getVariableValue(isVariableFound1,isVariableFound2,it,it2,str3);
+   }else if(str3 == "offset"){
+      **firstReg = getVariableAddress(str2);
    }else{
       **firstReg = getOtherValue(str2);
    }
@@ -689,9 +777,11 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
          // VARIABLE WILL BE MOVED.
       else if(isVariableFound1 || isVariableFound2){
          (*firstIt).value = getVariableValue(isVariableFound1,isVariableFound2,it,it2,str3);
+      }else if(str3 == "offset"){
+         (*firstIt).value = getVariableAddress(str2);
       }
       else{
-      (*firstIt).value= getOtherValue(str2);
+         (*firstIt).value= getOtherValue(str2);
       }
 
 }
@@ -843,7 +933,7 @@ void createDbOrDw(string& line){
             variable.value = stoi(thirdWord);
          }
          dbVariables.push_back(variable);
-         queueOfVariables.push_back(variable.name);
+         queueOfVariables.push_back(make_pair(variable.name,"db"));
       }else{
          dwVariable variable;
          variable.name = firstWord;
@@ -853,7 +943,8 @@ void createDbOrDw(string& line){
             variable.value = stoi(thirdWord);
          }
          dwVariables.push_back(variable);
-         queueOfVariables.push_back(variable.name);
+         queueOfVariables.push_back(make_pair(variable.name,"dw"));
+
       }
       
       
