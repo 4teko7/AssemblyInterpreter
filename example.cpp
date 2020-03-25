@@ -102,10 +102,11 @@ bool isint20h = false;
 vector<string> afterCompare;
 bool isJustAfterCompare = false;
 bool lineWithoutLabel = false;
+int numberOfLinesWithoutVariables = 0;
+vector<string> queueOfVariables;
 
 // FUNCTIONS
-void db(string& line);
-void dw(string& line);
+void createDbOrDw(string& line);
 bool checkSpace(string& line);
 bool checkQuotationMarks(string& line);
 bool checkSingleQuotationMark(string& line);
@@ -172,12 +173,11 @@ void determineLabelVariables(){
    string line = "";
    std::vector<string>::iterator it;
    for (int i = 0; i < labels.size(); i++) {
+      numberOfLinesWithoutVariables += labels.at(i).content.size();  
+      if(labels.at(i).name != "Without Labels") numberOfLinesWithoutVariables += 1;
    for (it = labels.at(i).content.begin(); it != labels.at(i).content.end(); it++) {
       line = *it;
-      if(line.find("db") != string::npos || line.find("dw") != string::npos){
-         line = labels.at(i).name + " " + line;
-         db(line);
-      }
+      if(line.find("int 20h")) return;
       }
    }
 }
@@ -629,12 +629,12 @@ int getOtherValue(string &str1) {
    if((48 <= str1.at(0) && str1.at(0) <= 57)){
       if(str1.at(str1.length()-1) == 'd'){
          str1 = str1.substr(0,str1.length()-1);
-         result = (int8_t)stoi(str1);
+         result = stoi(str1);
       }else if((str1.at(str1.length()-1) == 'h')){
          str1 = str1.substr(0,str1.length()-1);
-         result = (int8_t)hexToDec(str1);
+         result = hexToDec(str1);
       }else{
-         result = (int8_t)stoi(str1);
+         result = stoi(str1);
       }
       
    }else{
@@ -646,7 +646,7 @@ int getOtherValue(string &str1) {
       }else{
          character = str1.at(0);
       }
-      result = (int8_t)character;
+      result = character;
    }
       return result;
 }
@@ -810,7 +810,7 @@ void parseInput(string& line,ifstream& inFile){
    bool isDw = line.find("dw") != string::npos;
    if(line == "") return;
    if(isDb || isDw){
-      db(line);
+      createDbOrDw(line);
       
    }else if(checkSemiColon(line)){
       createLabel(inFile,line);
@@ -822,7 +822,7 @@ void parseInput(string& line,ifstream& inFile){
 }
 
 // VARIABLES
-void db(string& line){
+void createDbOrDw(string& line){
    istringstream linestream(line);
    string temp,firstWord,secondWord,thirdWord,forthWord,fifthWord,sixthWord,seventhWord = "";
    if(checkSpace(line)){
@@ -843,6 +843,7 @@ void db(string& line){
             variable.value = stoi(thirdWord);
          }
          dbVariables.push_back(variable);
+         queueOfVariables.push_back(variable.name);
       }else{
          dwVariable variable;
          variable.name = firstWord;
@@ -852,6 +853,7 @@ void db(string& line){
             variable.value = stoi(thirdWord);
          }
          dwVariables.push_back(variable);
+         queueOfVariables.push_back(variable.name);
       }
       
       
@@ -865,8 +867,13 @@ void getLabelContent(Label& label,ifstream& inFile,string& line){
    if(!lineWithoutLabel) getLineTrimLower(inFile,firstLine);
    while(!checkSemiColon(firstLine)){
       if(firstLine.find("code segment") != string::npos || firstLine.find("code ends") != string::npos) break;
-      if(firstLine.substr(0,2) != "db" && firstLine.substr(0,2) != "dw" && (firstLine.find("db") != string::npos || firstLine.find("dw") != string::npos)) {
-         db(firstLine);
+      if((firstLine.find("db") != string::npos || firstLine.find("dw") != string::npos)) {
+         if(firstLine.substr(0,2) == "db" || firstLine.substr(0,2) == "dw"){
+            string temp = label.name + " " + firstLine;
+            createDbOrDw(temp);
+         }else{
+            createDbOrDw(firstLine);
+         }
          if(inFile.eof()) break;
          getLineTrimLower(inFile,firstLine);
          continue;
