@@ -1,12 +1,13 @@
 alti db '6'
 yedi db '7'
-mov [0090h],10
-mov [0091h],alti
-mov [0090],offset yedi
-mov [0090],[0091h]
-mov al,[0090h]
+mov [0096h],10
+add [0097h],alti
+sub yedi,6
+mov [0096],offset yedi
+mov [0096],[0097h]
+mov al,[0096h]
 mov bl,[yedi]
-mov cl,[0090h]
+mov cl,[0096h]
 mov dl,offset yedi
 label:
 mov ah,02h

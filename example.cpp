@@ -129,7 +129,7 @@ bool checkBrackets(string& line);
 int determineValueOfInstruction(string &reg);
 int getOtherValue(string &str1);
 int getVariableAddress(string& variable);
-int getVariableValueFromMemoryAddress(int&  address);
+int getVariableValueFromMemoryAddress(string address);
 string getVariableNameFromVariableAddress(string address);
 int getIndexOfLabel(string & labelName);
 void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2);
@@ -137,7 +137,7 @@ void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg,bool& isVaria
 
 // SET VALUE OF SOMETHING
 void setVariableAddress(string& variable,int address);
-void setVariableValue(string variableName,int value);
+void setVariableValue(string variableName,int value,string option);
 
 
 
@@ -178,10 +178,10 @@ void printVariables();
 
 
 // INSTRUCTIONS
-void move(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isVariableFound1,bool& isVariableFound2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl);
-template <class regOne, class regTwo>  void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3);
-template <class regOne, class regTwo>  void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3);
-
+void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl,string option);
+template <class regOne, class regTwo>  void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str2,string& str3,string option);
+template <class regOne, class regTwo>  void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str2,string& str3,string option);
+void instructionForBrakets(string str1,string str2,string str3,string option);
 void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl);
 void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl);
 void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl);
@@ -349,6 +349,33 @@ void constructMemory(){
    
 }
 
+// SET VARIABLE ADDRESS
+void setVariableAddress(string& variable,int address){
+      std::vector<dbVariable>::iterator it;
+      std::vector<dwVariable>::iterator it2;
+      bool isVariableFound1 = false;
+      bool isVariableFound2 = false;
+      for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
+         if(variable == (*it).name){
+            (*it).address = address;
+            memory[address] = (*it).value;
+            isVariableFound1 = true;
+            break;
+         }
+
+      }
+      if(!isVariableFound1){
+      for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++)
+      {
+         if(variable == (*it2).name){
+            (*it2).address = address;
+            memory[address] = (*it2).value;
+            isVariableFound2 = true;
+            break;
+         }
+      }
+      }
+}
 
 // PROCESS LABEL
 void processLabels(int index){
@@ -446,12 +473,8 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
       determineReg(&pnx,&pnhl,str2,isVariableFound1,isVariableFound2,it,it2);
       
 
-      if(option == "mov"){
-         move(pmx,pnx,it,it2,firstIt,firstIt2,isVariableFound1,isVariableFound2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl);
-      }else if(option == "add"){
-         add(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3,pmhl,pnhl);
-      }else if(option == "sub"){
-         sub(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3,pmhl,pnhl);
+      if(option == "mov" || option == "add" || option == "sub"){
+         instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,option);
       }else if(option == "cmp"){
          cmp(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3,pmhl,pnhl);
       }else if(option == "or"){
@@ -462,7 +485,7 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
          pnx = &result;
          eightBit = (int8_t)result;
          pnhl = &eightBit;
-         move(pmx,pnx,it,it2,firstIt,firstIt2,isVariableFound1,isVariableFound2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl);
+         instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
 
       }else if(option == "and"){
          int8_t eightBit = 0;
@@ -472,7 +495,7 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
          pnx = &result;
          eightBit = (int8_t)result;
          pnhl = &eightBit;
-         move(pmx,pnx,it,it2,firstIt,firstIt2,isVariableFound1,isVariableFound2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl);
+         instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
 
       }else if(option == "xor"){
          int8_t eightBit = 0;
@@ -482,7 +505,7 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
          pnx = &result;
          eightBit = (int8_t)result;
          pnhl = &eightBit;
-         move(pmx,pnx,it,it2,firstIt,firstIt2,isVariableFound1,isVariableFound2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl);
+         instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
 
       }else if(option == "not"){
          int8_t eightBit = 0;
@@ -491,7 +514,7 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
          pnx = &result;
          eightBit = (int8_t)result;
          pnhl = &eightBit;
-         move(pmx,pnx,it,it2,firstIt,firstIt2,isVariableFound1,isVariableFound2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl);
+         instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
 
       }else if(option == "rcl"){
      
@@ -531,7 +554,8 @@ void processOneWordInstructions(string& option, string& str1){
       }
       cout.flush();
    }else if(option == "int" && str1 == "20h"){
-      print_16bitregs(); 
+      print_16bitregs();
+      exit(0);
    }else if(option == "div"){
       *pax /= (unsigned short)determineValueOfInstruction(str1);
    }else if(option == "mul"){
@@ -564,10 +588,6 @@ void processOneWordInstructions(string& option, string& str1){
    }
 
 }
-
-
-
-
 
 // DETERMINE : pmx,pmhl,it,it2,isVariableFound1,isVariableFound2
 void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2) {
@@ -721,81 +741,21 @@ int getOtherValue(string &str1) {
 }
 
 //     M O V E    F U N C T I O N
-void move(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isVariableFound1,bool& isVariableFound2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl) {
+void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl,string option) {
          char character;
          if(pmx != nullptr){
-            moveValueToReg(&pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3);
+            moveValueToReg(&pmx,pnx,it,it2,str2,str3,option);
          }else if(pmhl != nullptr){
-            moveValueToReg(&pmhl,pnhl,it,it2,isVariableFound1,isVariableFound2,str2,str3);
+            moveValueToReg(&pmhl,pnhl,it,it2,str2,str3,option);
          }else if(isFirstVariableFound1){
-            if(pnhl != nullptr) moveValueToVariable(firstIt,pnhl,it,it2,isVariableFound1,isVariableFound2,str2,str3);
-            else moveValueToVariable(firstIt,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3);
+            if(pnhl != nullptr) moveValueToVariable(firstIt,pnhl,it,it2,str2,str3,option);
+            else moveValueToVariable(firstIt,pnx,it,it2,str2,str3,option);
          }else if(isFirstVariableFound2){
-            if(pnhl != nullptr) moveValueToVariable(firstIt2,pnhl,it,it2,isVariableFound1,isVariableFound2,str2,str3);
-            else moveValueToVariable(firstIt2,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3);
+            if(pnhl != nullptr) moveValueToVariable(firstIt2,pnhl,it,it2,str2,str3,option);
+            else moveValueToVariable(firstIt2,pnx,it,it2,str2,str3,option);
          }else if(str1.at(0) == '[' && str1.at(str1.length()-1) == ']' && isDigitDecimal(str1,1)){
-            
-            if(str3 == "offset"){
-               memory[stoi(cleanVariable(str1))] = getVariableAddress(str2);
-               setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2));
-               }
-            else{
-               memory[stoi(cleanVariable(str1))] = determineValueOfInstruction(str2);
-               setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2));
-         }
+            instructionForBrakets(str1,str2,str3,option);
       }  
-}
-
-void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl){
-   char character;
-   if(pmx != nullptr){
-            if(pnx != nullptr){
-               *pmx += *pnx;
-            }
-               // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1 || isVariableFound2){
-               *pmx += determineValueOfInstruction(str2);
-            }else{
-              *pmx += getOtherValue(str2);
-            }
-
-            
-         }else if(pmhl != nullptr){
-            if(pnhl != nullptr){
-               *pmhl += *pnhl;
-            }
-               // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1 || isVariableFound2){
-               *pmhl += determineValueOfInstruction(str2);
-            }else{
-              *pmhl += getOtherValue(str2);
-            }
-         }
-}
-
-void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl){
-   char character;
-   if(pmx != nullptr){
-            if(pnx != nullptr){
-               *pmx -= *pnx;
-            }
-               // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1 || isVariableFound2){
-               *pmx -= determineValueOfInstruction(str2);
-            }else{
-              *pmx -= getOtherValue(str2);
-            }
-         }else if(pmhl != nullptr){
-            if(pnhl != nullptr){
-               *pmhl -= *pnhl;
-            }
-               // VARIABLE WILL BE MOVED.
-            else if(isVariableFound1 || isVariableFound2){
-               *pmhl -= determineValueOfInstruction(str2);
-            }else{
-              *pmhl -= getOtherValue(str2);
-            }
-         }
 }
 
 void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl){
@@ -825,41 +785,124 @@ void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
 
 
 
-template <class regOne, class regTwo> 
-void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3){
-   if(secondReg != nullptr){
-      **firstReg = *secondReg;
-   }
-      // VARIABLE WILL BE MOVED.
-   else if(isVariableFound1 || isVariableFound2){
-      **firstReg = determineValueOfInstruction(str2);
-   }else if(str3 == "offset"){
-      **firstReg = getVariableAddress(str2);
-   }else{
-      **firstReg = getOtherValue(str2);
-   }
 
-}
 
 template <class regOne, class regTwo> 
-void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3){
-   
-      if(pnx != nullptr){
-         (*firstIt).value = *pnx;
+void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str2,string& str3,string option){
+   if(option == "mov"){
+      if(secondReg != nullptr){
+         **firstReg = *secondReg;
       }
          // VARIABLE WILL BE MOVED.
-      else if(isVariableFound1 || isVariableFound2){
-         (*firstIt).value = determineValueOfInstruction(str2);
-      }else if(str3 == "offset"){
+      else if(str3 == "offset"){
+         **firstReg = getVariableAddress(str2);
+      }else{
+         **firstReg = determineValueOfInstruction(str2);
+      }
+   }else if(option == "add"){
+      if(secondReg != nullptr){
+         **firstReg += *secondReg;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         **firstReg += getVariableAddress(str2);
+      }else{
+         **firstReg += determineValueOfInstruction(str2);
+      }
+   }else if(option == "sub"){
+      if(secondReg != nullptr){
+         **firstReg -= *secondReg;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         **firstReg -= getVariableAddress(str2);
+      }else{
+         **firstReg -= determineValueOfInstruction(str2);
+      }
+   }
+}
+
+template <class regOne, class regTwo> 
+void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str2,string& str3,string option){
+   if(option == "mov"){
+      if(pnx != nullptr){
+         (*firstIt).value = *pnx;
+         memory[(*firstIt).address] = *pnx;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
          (*firstIt).value = getVariableAddress(str2);
+         memory[(*firstIt).address] = getVariableAddress(str2);
       }
       else{
-         (*firstIt).value= getOtherValue(str2);
+         (*firstIt).value = determineValueOfInstruction(str2);
+         memory[(*firstIt).address] = determineValueOfInstruction(str2);
       }
+   }else if(option == "add"){
+      if(pnx != nullptr){
+         (*firstIt).value += *pnx;
+         memory[(*firstIt).address] += *pnx;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         (*firstIt).value += getVariableAddress(str2);
+         memory[(*firstIt).address] += getVariableAddress(str2);
+      }
+      else{
+         (*firstIt).value += determineValueOfInstruction(str2);
+         memory[(*firstIt).address] += determineValueOfInstruction(str2);
+      }
+   }else if(option == "sub"){
+      if(pnx != nullptr){
+         (*firstIt).value -= *pnx;
+         memory[(*firstIt).address] -= *pnx;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         (*firstIt).value -= getVariableAddress(str2);
+         memory[(*firstIt).address] -= getVariableAddress(str2);
+      }
+      else{
+         (*firstIt).value -= determineValueOfInstruction(str2);
+         memory[(*firstIt).address] -= determineValueOfInstruction(str2);
+      }
+   }
 
 }
 
 
+void instructionForBrakets(string str1,string str2,string str3,string option) {
+   
+   if(option == "mov"){
+      if(str3 == "offset"){
+         memory[stoi(cleanVariable(str1))] = getVariableAddress(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
+         }
+      else{
+         memory[stoi(cleanVariable(str1))] = determineValueOfInstruction(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
+      }
+   }else if(option == "add"){
+      if(str3 == "offset"){
+         memory[stoi(cleanVariable(str1))] += getVariableAddress(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
+         }
+      else{
+         memory[stoi(cleanVariable(str1))] += determineValueOfInstruction(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
+      }
+   }else if(option == "sub"){
+      if(str3 == "offset"){
+         memory[stoi(cleanVariable(str1))] -= getVariableAddress(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
+         }
+      else{
+         memory[stoi(cleanVariable(str1))] -= determineValueOfInstruction(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
+      }
+   }
+
+}
 
 void comparison(unsigned short firstValue,unsigned short secondValue){
    if(firstValue == secondValue && zf == 1) {
@@ -907,9 +950,36 @@ void comparison(unsigned short firstValue,unsigned short secondValue){
 
 
 // FUNCTIONS ABOUT MEMORY ADDRESS
-int getVariableValueFromMemoryAddress(string&  address){
-   return memory[stoi(cleanVariable(address))];
+void setVariableValue(string variableName,int value,string option){
+   variableName = cleanVariable(variableName);
+   std::vector<dbVariable>::iterator it;
+      std::vector<dwVariable>::iterator it2;
+      bool isVariableFound1 = false;
+      bool isVariableFound2 = false;
+      for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
+         if(variableName == (*it).name){
+            if(option == "mov") (*it).value = value;
+            else if(option == "add") (*it).value += value;
+            else if(option == "sub") (*it).value -= value;
+            isVariableFound1 = true;
+            break;
+         }
+
+      }
+      if(!isVariableFound1){
+      for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++) {
+         if(variableName == (*it2).name){
+            if(option == "mov") (*it2).value = value;
+            else if(option == "add") (*it2).value += value;
+            else if(option == "sub") (*it2).value -= value;
+            isVariableFound2 = true;
+            break;
+         }
+      }
+      }
 }
+
+
 
 int getVariableAddress(string& variable){
    string resultVariable = "";
@@ -937,32 +1007,8 @@ int getVariableAddress(string& variable){
    if(isVariableFound1) return (*it).address;
    else return (*it2).address;
 }
-
-void setVariableAddress(string& variable,int address){
-      std::vector<dbVariable>::iterator it;
-      std::vector<dwVariable>::iterator it2;
-      bool isVariableFound1 = false;
-      bool isVariableFound2 = false;
-      for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
-         if(variable == (*it).name){
-            (*it).address = address;
-            memory[address] = (*it).value;
-            isVariableFound1 = true;
-            break;
-         }
-
-      }
-      if(!isVariableFound1){
-      for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++)
-      {
-         if(variable == (*it2).name){
-            (*it2).address = address;
-            memory[address] = (*it2).value;
-            isVariableFound2 = true;
-            break;
-         }
-      }
-      }
+int getVariableValueFromMemoryAddress(string address) {
+   return memory[stoi(cleanVariable(address))];
 }
 
 string getVariableNameFromVariableAddress(string address){
@@ -986,30 +1032,6 @@ string getVariableNameFromVariableAddress(string address){
    return "";
 }
 
-void setVariableValue(string variableName,int value){
-   variableName = cleanVariable(variableName);
-   std::vector<dbVariable>::iterator it;
-      std::vector<dwVariable>::iterator it2;
-      bool isVariableFound1 = false;
-      bool isVariableFound2 = false;
-      for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
-         if(variableName == (*it).name){
-            (*it).value = value;
-            isVariableFound1 = true;
-            break;
-         }
-
-      }
-      if(!isVariableFound1){
-      for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++) {
-         if(variableName == (*it2).name){
-            (*it2).value = value;
-            isVariableFound2 = true;
-            break;
-         }
-      }
-      }
-}
 
 
 
