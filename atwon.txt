@@ -1,7 +1,23 @@
 alti db '6'
-yedi db '7'
-mov [0096h],10
-add [0097h],alti
+yedi db 7
+sekiz db 8
+a db 'a'
+on db 10
+doksanYedi db 97
+altiw dw '6'
+yediw dw 7
+sekizw dw 8
+aw dw 'a'
+onw dbw 10
+doksanYediw dw 97
+
+
+
+mov al,00000001b
+sub al,01000010b
+mov ax,0000000000000001b
+sub ax,0000000000000010b
+add ax,bx
 sub yedi,6
 mov [0096],offset yedi
 mov [0096],[0097h]

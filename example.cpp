@@ -7,7 +7,7 @@
 #include<stdlib.h>
 #include<math.h>
 // prototypes 
-template <class datatype> void print_bits(datatype x) ; 
+template <class datatype> void printBits(datatype x);
 template <class datatype> void print_hex(datatype x) ; 
 template <class regtype>  void mov_reg_reg(regtype *preg1,regtype *preg2)  ;
 void print_16bitregs() ; 
@@ -30,9 +30,9 @@ unsigned short sp = (2<<15)-2 ;
 
 
 bool zf = 0;              // zero flag
-bool sf = 0;              // sign flag 
 bool cf = 0;              // carry flag
 bool af = 0;              // auxillary flag 
+bool sf = 0;              // sign flag 
 bool of = 0;              // overflow flag
 
 
@@ -62,14 +62,14 @@ unsigned short *pdx = &dx ;
 
 
 // note that x86 uses little endian, that is, least significat byte is stored in lowest byte 
-int8_t *pah = (int8_t *) ( ( (int8_t *) &ax) + 1);
-int8_t *pal = (int8_t *) &ax;
-int8_t *pbh = (int8_t *) ( ( (int8_t *) &bx) + 1);
-int8_t *pbl = (int8_t *) &bx;
-int8_t *pch = (int8_t *) ( ( (int8_t *) &cx) + 1);
-int8_t *pcl = (int8_t *) &cx;
-int8_t *pdh = (int8_t *) ( ( (int8_t *) &dx) + 1);
-int8_t *pdl = (int8_t *) &dx;
+unsigned char *pah = (unsigned char *) ( ( (unsigned char *) &ax) + 1);
+unsigned char *pal = (unsigned char *) &ax;
+unsigned char *pbh = (unsigned char *) ( ( (unsigned char *) &bx) + 1);
+unsigned char *pbl = (unsigned char *) &bx;
+unsigned char *pch = (unsigned char *) ( ( (unsigned char *) &cx) + 1);
+unsigned char *pcl = (unsigned char *) &cx;
+unsigned char *pdh = (unsigned char *) ( ( (unsigned char *) &dx) + 1);
+unsigned char *pdl = (unsigned char *) &dx;
 
 using namespace std;
 
@@ -78,7 +78,7 @@ using namespace std;
 struct dbVariable{
     string name;
     int address = 0;
-    int8_t value = 0;
+    unsigned char value = 0;
 };
 
 
@@ -132,13 +132,13 @@ int getVariableAddress(string& variable);
 int getVariableValueFromMemoryAddress(string address);
 string getVariableNameFromVariableAddress(string address);
 int getIndexOfLabel(string & labelName);
-void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2);
+void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2);
 
 
 // SET VALUE OF SOMETHING
 void setVariableAddress(string& variable,int address);
 void setVariableValue(string variableName,int value,string option);
-
+void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,string option);
 
 
 // CLEANING AND PARSING
@@ -169,8 +169,12 @@ void processOneWordInstructions(string& option, string& str1);
 //UTILITY FUNCTIONS
 unsigned short hexToDec(std::string hexString);
 string decToHex(int n);
+template <class datatype> string decToBin(datatype x);
+int binToDec(string number);
+int binToDec(long long int n);
 void toUpper(string& firstLine);
 void toLower(string& firstLine);
+int countSpecificCharacter(string str, char character);
 void printLabels();
 void printVariables();
 
@@ -178,13 +182,13 @@ void printVariables();
 
 
 // INSTRUCTIONS
-void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl,string option);
+void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl,string option);
 template <class regOne, class regTwo>  void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str2,string& str3,string option);
 template <class regOne, class regTwo>  void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str2,string& str3,string option);
 void instructionForBrakets(string str1,string str2,string str3,string option);
-void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl);
-void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl);
-void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl);
+void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl);
+void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl);
+void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl);
 void comparison(unsigned short firstValue,unsigned short secondValue);
 
 
@@ -456,8 +460,8 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
       std::vector<dwVariable>::iterator it2;
       std::vector<dbVariable>::iterator firstIt;
       std::vector<dwVariable>::iterator firstIt2;
-      int8_t *pmhl = nullptr;
-      int8_t *pnhl = nullptr;
+      unsigned char *pmhl = nullptr;
+      unsigned char *pnhl = nullptr;
       unsigned short *pmx = nullptr; 
       unsigned short *pnx = nullptr; 
 
@@ -478,41 +482,41 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
       }else if(option == "cmp"){
          cmp(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3,pmhl,pnhl);
       }else if(option == "or"){
-         int8_t eightBit = 0;
+         unsigned char eightBit = 0;
          unsigned short first = determineValueOfInstruction(str1);
          unsigned short second = determineValueOfInstruction(str2);
          unsigned short result = first | second;
          pnx = &result;
-         eightBit = (int8_t)result;
+         eightBit = (unsigned char)result;
          pnhl = &eightBit;
          instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
 
       }else if(option == "and"){
-         int8_t eightBit = 0;
+         unsigned char eightBit = 0;
          unsigned short first = determineValueOfInstruction(str1);
          unsigned short second = determineValueOfInstruction(str2);
          unsigned short result = first & second;
          pnx = &result;
-         eightBit = (int8_t)result;
+         eightBit = (unsigned char)result;
          pnhl = &eightBit;
          instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
 
       }else if(option == "xor"){
-         int8_t eightBit = 0;
+         unsigned char eightBit = 0;
          unsigned short first = determineValueOfInstruction(str1);
          unsigned short second = determineValueOfInstruction(str2);
          unsigned short result = first ^ second;
          pnx = &result;
-         eightBit = (int8_t)result;
+         eightBit = (unsigned char)result;
          pnhl = &eightBit;
          instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
 
       }else if(option == "not"){
-         int8_t eightBit = 0;
+         unsigned char eightBit = 0;
          unsigned short first = determineValueOfInstruction(str1);
          unsigned short result = ~first;
          pnx = &result;
-         eightBit = (int8_t)result;
+         eightBit = (unsigned char)result;
          pnhl = &eightBit;
          instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
 
@@ -531,14 +535,14 @@ void processOneWordInstructions(string& option, string& str1){
       if(*pah == 1){
          char temp;
          cin >> temp;
-         *pal = (int8_t)temp;
+         *pal = (unsigned char)temp;
          cout << (char)(*pal);
       }else if(decToHex(*pah) == "2"){
          cout << (char)(*pdl) ;
       }else if(decToHex(*pah) == "8"){
          char temp;
          cin >> temp;
-         *pal = (int8_t)temp;
+         *pal = (unsigned char)temp;
       }else if(decToHex(*pah) == "9"){
          if(*pdx == 255){
             cout << fromKeyboard;
@@ -568,7 +572,7 @@ void processOneWordInstructions(string& option, string& str1){
 
    }else if(option == "pop"){
       unsigned short *pmx = nullptr; 
-      int8_t *pmhl = nullptr;
+      unsigned char *pmhl = nullptr;
       bool isVariableFound1 = false;
       bool isVariableFound2 = false;
       std::vector<dbVariable>::iterator it;
@@ -590,7 +594,7 @@ void processOneWordInstructions(string& option, string& str1){
 }
 
 // DETERMINE : pmx,pmhl,it,it2,isVariableFound1,isVariableFound2
-void determineReg(unsigned short **pmx, int8_t **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2) {
+void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2) {
    string resultReg = cleanVariable(reg);
    if(resultReg == "ax"){
       *pmx = pax;
@@ -696,7 +700,7 @@ int determineValueOfInstruction(string &reg) {
       }
 
     if(isVariableFound1){
-         result = (int8_t)((*it).value); 
+         result = (unsigned char)((*it).value); 
       }else if(isVariableFound2){
             result = (unsigned short)((*it2).value); 
       }else{
@@ -720,6 +724,9 @@ int getOtherValue(string &str1) {
       }else if((str1.at(str1.length()-1) == 'h')){
          str1 = str1.substr(0,str1.length()-1);
          result = hexToDec(str1);
+      }else if((str1.at(str1.length()-1) == 'b')){
+         str1 = str1.substr(0,str1.length()-1);
+         result = binToDec(str1);
       }else{
          result = stoi(str1);
       }
@@ -741,7 +748,7 @@ int getOtherValue(string &str1) {
 }
 
 //     M O V E    F U N C T I O N
-void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl,string option) {
+void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl,string option) {
          char character;
          if(pmx != nullptr){
             moveValueToReg(&pmx,pnx,it,it2,str2,str3,option);
@@ -758,7 +765,7 @@ void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVa
       }  
 }
 
-void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl){
+void cmp(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl){
          char character;
          if(pmx != nullptr){
             if(pnx != nullptr){
@@ -801,22 +808,36 @@ void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>
       }
    }else if(option == "add"){
       if(secondReg != nullptr){
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"add");
          **firstReg += *secondReg;
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
          **firstReg += getVariableAddress(str2);
       }else{
-         **firstReg += determineValueOfInstruction(str2);
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         **firstReg += resultOfInstruction;
       }
    }else if(option == "sub"){
       if(secondReg != nullptr){
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"sub");
          **firstReg -= *secondReg;
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"sub");
          **firstReg -= getVariableAddress(str2);
       }else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"sub");
          **firstReg -= determineValueOfInstruction(str2);
       }
    }
@@ -935,7 +956,144 @@ void comparison(unsigned short firstValue,unsigned short secondValue){
 }
 
 
+// FLAGS
 
+void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,string option) {
+   unsigned char num1EightBit = number1;
+   unsigned char num2EightBit = number2;
+   unsigned short num1SixteenBit = number1;
+   unsigned short num2SixteenBit = number2;
+   unsigned char eightBitResult = 0;
+   unsigned short sixteenBitResult = 0;
+   bool isFirstDigitOne1 = decToBin(number1).at(0) == '1';
+   bool isFirstDigitOne2 = decToBin(number2).at(0) == '1';
+   if(option == "add"){
+      if(bit == 8){
+         eightBitResult = num1EightBit + num2EightBit;
+         if(decToBin(eightBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+         if(num1EightBit+num2EightBit > 255) cf = 1;
+         else cf = 0;
+         if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         else of = 0;
+         if(eightBitResult == 0) zf = 1;
+         else zf = 0;
+         
+         unsigned char number1Binary = binToDec(decToBin(num1EightBit).substr(4,8));
+         unsigned char number2Binary = binToDec(decToBin(num2EightBit).substr(4,8));
+         if(number1Binary + number2Binary > 15) af = 1;
+         // if(countSpecificCharacter(decToBin(eightBitResult),'1') % 2 == 0) pf = 1;
+         // else pf = 0;
+      }else if(bit == 16){
+         sixteenBitResult = num1SixteenBit + num2SixteenBit;
+         if(decToBin(sixteenBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+         if(num1SixteenBit+num2SixteenBit > 65535) cf = 1;
+         else cf = 0;
+         if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         else of = 0;
+         if(sixteenBitResult == 0) zf = 1;
+         else zf = 0;
+         unsigned char number1Binary = binToDec(decToBin(num1SixteenBit).substr(12,16));
+         unsigned char number2Binary = binToDec(decToBin(num2SixteenBit).substr(12,16));
+         if(number1Binary + number2Binary > 15) af = 1;
+      }
+
+   }else if(option == "sub"){
+       if(bit == 8){
+         eightBitResult = num1EightBit - num2EightBit;
+         if(decToBin(eightBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+         if(num1EightBit < num2EightBit) cf = 1;
+         else cf = 0;
+         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         // else of = 0;
+         if(eightBitResult == 0) zf = 1;
+         else zf = 0;
+         
+         unsigned char number1Binary = binToDec(decToBin(num1EightBit).substr(4,8));
+         unsigned char number2Binary = binToDec(decToBin(num2EightBit).substr(4,8));
+         if(number1Binary < number2Binary) af = 1;
+         // if(countSpecificCharacter(decToBin(eightBitResult),'1') % 2 == 0) pf = 1;
+         // else pf = 0;
+      }else if(bit == 16){
+         sixteenBitResult = num1SixteenBit - num2SixteenBit;
+         if(decToBin(sixteenBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+         if(num1SixteenBit < num2SixteenBit) cf = 1;
+         else cf = 0;
+         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         // else of = 0;
+         if(sixteenBitResult == 0) zf = 1;
+         else zf = 0;
+         unsigned char number1Binary = binToDec(decToBin(num1SixteenBit).substr(12,16));
+         unsigned char number2Binary = binToDec(decToBin(num2SixteenBit).substr(12,16));
+         if(number1Binary < number2Binary) af = 1;
+      }
+   }else if(option == "mul"){
+      if(bit == 8){
+         eightBitResult = num1EightBit * num2EightBit;
+         if(decToBin(eightBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+         if(num1EightBit*num2EightBit > 255) cf = 1;
+         else cf = 0;
+         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         // else of = 0;
+         if(eightBitResult == 0) zf = 1;
+         else zf = 0;
+         
+         unsigned char number1Binary = binToDec(decToBin(num1EightBit).substr(4,8));
+         unsigned char number2Binary = binToDec(decToBin(num2EightBit).substr(4,8));
+         if(number1Binary * number2Binary > 15) af = 1;
+         // if(countSpecificCharacter(decToBin(eightBitResult),'1') % 2 == 0) pf = 1;
+         // else pf = 0;
+      }else if(bit == 16){
+         sixteenBitResult = num1SixteenBit * num2SixteenBit;
+         if(decToBin(sixteenBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+         if(num1SixteenBit*num2SixteenBit > 65535) cf = 1;
+         else cf = 0;
+         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         // else of = 0;
+         if(sixteenBitResult == 0) zf = 1;
+         else zf = 0;
+         unsigned char number1Binary = binToDec(decToBin(num1SixteenBit).substr(12,16));
+         unsigned char number2Binary = binToDec(decToBin(num2SixteenBit).substr(12,16));
+         if(number1Binary * number2Binary > 15) af = 1;
+      }
+   }else if(option == "div"){
+
+   }else if(option == "xor"){
+
+   }else if(option == "or"){
+
+   }else if(option == "and"){
+
+   }else if(option == "not"){
+
+   }else if(option == "rcl"){
+      
+   }else if(option == "rcr"){
+      
+   }else if(option == "shl"){
+      
+   }else if(option == "shr"){
+      
+   }else if(option == "nop"){
+      
+   }else if(option == "cmp"){
+      
+   }
+
+
+
+}
 
 
 
@@ -1137,6 +1295,14 @@ inline string getLinestreamLine(istringstream& linestream,string& word,char opti
     return word;
 }
 
+int countSpecificCharacter(string str, char character) {
+   int count = 0;
+   for (int i = 0; i < str.length(); i++) {
+      if(str.at(i) == character) count++;
+   }
+   return count;
+   
+}
 
 
 
@@ -1222,13 +1388,42 @@ string decToHex(int n) {
     
 } 
 
+template <class datatype>
+string decToBin(datatype x) {
+    string bits = "";
+    for(int i=8*sizeof(x)-1; i>=0; i--) {
+      (x & (1 << i)) ? bits += '1' : bits += '0';
+    }
+    return bits;
+}
+
+int binToDec(string number) {
+    int n = 0,index = 0;
+    for (int i = number.length()-1; i >= 0; i--)
+    {
+       n += (number.at(i) - '0') * pow(2,index++);
+    }
+    return n;
+}
+
+int binToDec(long long int n) {
+    int decimalNumber = 0, i = 0, remainder;
+    while (n!=0)
+    {
+        remainder = n%10;
+        n /= 10;
+        decimalNumber += remainder*pow(2,i);
+        ++i;
+    }
+    return decimalNumber;
+}
 
 template <class datatype> 
-void print_bits(datatype x) {
+void printBits(datatype x) {
     int i;
 
     for(i=8*sizeof(x)-1; i>=0; i--) {
-        (x & (1 << i)) ? putchar('1') : putchar('0');
+      (x & (1 << i)) ? putchar('1') : putchar('0');
     }
     printf("\n");
 }
@@ -1259,7 +1454,7 @@ void print_16bitregs() {
 
 
 // YEDEK OR
-// void orOfValues(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isVariableFound1,bool& isVariableFound2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str2,string& str3,int8_t *pmhl,int8_t *pnhl) {
+// void orOfValues(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isVariableFound1,bool& isVariableFound2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl) {
 
 //    char character;
 //    if(pmx != nullptr){
