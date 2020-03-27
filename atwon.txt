@@ -13,10 +13,24 @@ doksanYediw dw 97
 
 
 
+mov ax,0000000000001000b
+mov bx,0
+mul bx
 mov al,00000001b
 sub al,01000010b
-mov ax,0000000000000001b
-sub ax,0000000000000010b
+mov al,00000001b
+mov bl,00000010b
+or al,bl
+and al,bl
+not al
+shl al,3
+shr al,3
+xor al,bl
+
+mov bx,0000000000000001b
+sub bx,0000000000000010b
+mov cx,0
+mul cx
 add ax,bx
 sub yedi,6
 mov [0096],offset yedi

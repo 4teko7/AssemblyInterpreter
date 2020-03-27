@@ -126,8 +126,8 @@ bool checkBrackets(string& line);
 
 
 // GET VALUE OF SOMETHING
-int determineValueOfInstruction(string &reg);
-int getOtherValue(string &str1);
+int determineValueOfInstruction(string reg);
+int getOtherValue(string str1);
 int getVariableAddress(string& variable);
 int getVariableValueFromMemoryAddress(string address);
 string getVariableNameFromVariableAddress(string address);
@@ -401,24 +401,16 @@ void processLabels(int index){
          afterCompare.clear();
       }  
       
-      if(firstWord == "mov" || firstWord == "add" || firstWord == "sub"){
-            
+      if(firstWord == "mov" || firstWord == "add" || firstWord == "sub" || firstWord == "xor" || firstWord == "or" || firstWord == "and" || firstWord == "not" || firstWord == "shr" || firstWord == "shl"){
          if(line.find("offset") != string::npos) thirdWordsComma(linestream,secondWord,thirdWord,forthWord);
          else twoWordsComma(linestream,secondWord,thirdWord);
          processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
       }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop"){
          getLinestreamLine(linestream,secondWord,' ');
          processOneWordInstructions(firstWord,secondWord);
-      }else if(firstWord == "xor" || firstWord == "or" || firstWord == "and" || firstWord == "not"){
-         twoWordsComma(linestream,secondWord,thirdWord);
-         processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
       }else if(firstWord == "rcl"){
          
       }else if(firstWord == "rcr"){
-         
-      }else if(firstWord == "shl"){
-         
-      }else if(firstWord == "shr"){
          
       }else if(firstWord == "nop"){
          
@@ -469,7 +461,7 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
       bool isVariableFound2 = false;
       bool isFirstVariableFound1 = false;
       bool isFirstVariableFound2 = false;
-
+      unsigned char eightBit = 0;
    // For Register Names
 
       determineReg(&pmx,&pmhl,str1,isFirstVariableFound1,isFirstVariableFound2,firstIt,firstIt2);
@@ -477,53 +469,10 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
       determineReg(&pnx,&pnhl,str2,isVariableFound1,isVariableFound2,it,it2);
       
 
-      if(option == "mov" || option == "add" || option == "sub"){
+      if(option == "mov" || option == "add" || option == "sub" || option == "or" || option == "and" || option == "xor" || option == "not" || option == "rcl" || option == "rcr" || option == "shr" || option == "shl"){
          instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,option);
       }else if(option == "cmp"){
          cmp(pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3,pmhl,pnhl);
-      }else if(option == "or"){
-         unsigned char eightBit = 0;
-         unsigned short first = determineValueOfInstruction(str1);
-         unsigned short second = determineValueOfInstruction(str2);
-         unsigned short result = first | second;
-         pnx = &result;
-         eightBit = (unsigned char)result;
-         pnhl = &eightBit;
-         instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
-
-      }else if(option == "and"){
-         unsigned char eightBit = 0;
-         unsigned short first = determineValueOfInstruction(str1);
-         unsigned short second = determineValueOfInstruction(str2);
-         unsigned short result = first & second;
-         pnx = &result;
-         eightBit = (unsigned char)result;
-         pnhl = &eightBit;
-         instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
-
-      }else if(option == "xor"){
-         unsigned char eightBit = 0;
-         unsigned short first = determineValueOfInstruction(str1);
-         unsigned short second = determineValueOfInstruction(str2);
-         unsigned short result = first ^ second;
-         pnx = &result;
-         eightBit = (unsigned char)result;
-         pnhl = &eightBit;
-         instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
-
-      }else if(option == "not"){
-         unsigned char eightBit = 0;
-         unsigned short first = determineValueOfInstruction(str1);
-         unsigned short result = ~first;
-         pnx = &result;
-         eightBit = (unsigned char)result;
-         pnhl = &eightBit;
-         instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,"mov");
-
-      }else if(option == "rcl"){
-     
-      }else if(option == "rcr"){
-     
       }
 
 
@@ -563,6 +512,7 @@ void processOneWordInstructions(string& option, string& str1){
    }else if(option == "div"){
       *pax /= (unsigned short)determineValueOfInstruction(str1);
    }else if(option == "mul"){
+      checkAndSetFlags(*pax,determineValueOfInstruction(str1),16,option);
       *pax *= (unsigned short)determineValueOfInstruction(str1);
    }else if(option == "push"){
       unsigned short deger = (unsigned short)determineValueOfInstruction(str1);
@@ -646,7 +596,7 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
 
 // DETERMINE VALUE OF INSTRUCTION
 // ax,al,msg,1,1d,1h,'1',"1",[msg],[ax],[0090h],[0090]
-int determineValueOfInstruction(string &reg) {
+int determineValueOfInstruction(string reg) {
    string resultReg= "";
    resultReg = cleanVariable(reg);
    int result = 0;
@@ -656,30 +606,30 @@ int determineValueOfInstruction(string &reg) {
    bool isVariableFound1 = false;
    bool isVariableFound2 = false;
 
-   if(reg == "ax"){
-      resultReg = *pax;
-   }else if(reg == "bx"){
-      resultReg = *pbx;
-   }else if(reg == "cx"){
-      resultReg = *pcx;
-   }else if(reg == "dx"){
-      resultReg = *pdx;
-   }else if(reg == "ah"){
-      resultReg = *pah;
-   }else if(reg == "al"){
-      resultReg = *pal;
-   }else if(reg == "bh"){
-      resultReg = *pbh;
-   }else if(reg == "bl"){
-      resultReg = *pbl;
-   }else if(reg == "ch"){
-      resultReg = *pch;
-   }else if(reg == "cl"){
-      resultReg = *pcl;
-   }else if(reg == "dh"){
-      resultReg = *pdh;
-   }else if(reg == "dl"){
-      resultReg = *pdl;
+   if(resultReg == "ax"){
+      result = *pax;
+   }else if(resultReg == "bx"){
+      result = *pbx;
+   }else if(resultReg == "cx"){
+      result = *pcx;
+   }else if(resultReg == "dx"){
+      result = *pdx;
+   }else if(resultReg == "ah"){
+      result = *pah;
+   }else if(resultReg == "al"){
+      result = *pal;
+   }else if(resultReg == "bh"){
+      result = *pbh;
+   }else if(resultReg == "bl"){
+      result = *pbl;
+   }else if(resultReg == "ch"){
+      result = *pch;
+   }else if(resultReg == "cl"){
+      result = *pcl;
+   }else if(resultReg == "dh"){
+      result = *pdh;
+   }else if(resultReg == "dl"){
+      result = *pdl;
    }else{
       for (it = dbVariables.begin(); it != dbVariables.end(); it++)
       {
@@ -713,7 +663,7 @@ int determineValueOfInstruction(string &reg) {
 
 // determineValueOfInstruction Calls This Function -> getOtherValue
 // 1,1d,1h,'1',"1",[0090h],[0090]
-int getOtherValue(string &str1) {
+int getOtherValue(string str1) {
    int result = 0;
    char character;
 
@@ -840,6 +790,97 @@ void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>
          checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"sub");
          **firstReg -= determineValueOfInstruction(str2);
       }
+   }else if(option == "or"){
+      if(secondReg != nullptr){
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"add");
+         **firstReg |= *secondReg;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         **firstReg |= getVariableAddress(str2);
+      }else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         **firstReg |= resultOfInstruction;
+      }
+   }else if(option == "and"){
+      if(secondReg != nullptr){
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"add");
+         **firstReg &= *secondReg;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         **firstReg &= getVariableAddress(str2);
+      }else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         **firstReg &= resultOfInstruction;
+      }
+   }else if(option == "not"){
+      **firstReg = ~(**firstReg);
+   }else if(option == "xor"){
+      if(secondReg != nullptr){
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"add");
+         **firstReg ^= *secondReg;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         **firstReg ^= getVariableAddress(str2);
+      }else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         **firstReg ^= resultOfInstruction;
+      }
+   }else if(option == "shr"){
+      if(secondReg != nullptr){
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"shr");
+         **firstReg = **firstReg >> *secondReg;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"shr");
+         **firstReg = **firstReg >> getVariableAddress(str2);
+      }else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"shr");
+         **firstReg = **firstReg >> resultOfInstruction;
+      }
+   }else if(option == "shl"){
+      if(secondReg != nullptr){
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"shl");
+        **firstReg = **firstReg << *secondReg;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"shl");
+         **firstReg = **firstReg << getVariableAddress(str2);
+      }else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"shl");
+         **firstReg = **firstReg << resultOfInstruction;
+      }
+   }else if(option == "rcr"){
+
+   }else if(option == "rcl"){
+      
    }
 }
 
@@ -848,45 +889,171 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
    if(option == "mov"){
       if(pnx != nullptr){
          (*firstIt).value = *pnx;
-         memory[(*firstIt).address] = *pnx;
+         memory[(*firstIt).address] = (*firstIt).value;
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
          (*firstIt).value = getVariableAddress(str2);
-         memory[(*firstIt).address] = getVariableAddress(str2);
+         memory[(*firstIt).address] = (*firstIt).value;
       }
       else{
          (*firstIt).value = determineValueOfInstruction(str2);
-         memory[(*firstIt).address] = determineValueOfInstruction(str2);
+         memory[(*firstIt).address] = (*firstIt).value;
       }
    }else if(option == "add"){
       if(pnx != nullptr){
+         checkAndSetFlags((*firstIt).value,*pnx,sizeof((*firstIt).value)*8,"add");
          (*firstIt).value += *pnx;
-         memory[(*firstIt).address] += *pnx;
+         memory[(*firstIt).address] = (*firstIt).value;
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
-         (*firstIt).value += getVariableAddress(str2);
-         memory[(*firstIt).address] += getVariableAddress(str2);
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"add");
+         (*firstIt).value += resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
       }
       else{
-         (*firstIt).value += determineValueOfInstruction(str2);
-         memory[(*firstIt).address] += determineValueOfInstruction(str2);
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"add");
+         (*firstIt).value += resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
       }
    }else if(option == "sub"){
       if(pnx != nullptr){
+         checkAndSetFlags((*firstIt).value,*pnx,sizeof((*firstIt).value)*8,"sub");
          (*firstIt).value -= *pnx;
-         memory[(*firstIt).address] -= *pnx;
+         memory[(*firstIt).address] = (*firstIt).value;
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
-         (*firstIt).value -= getVariableAddress(str2);
-         memory[(*firstIt).address] -= getVariableAddress(str2);
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"sub");
+         (*firstIt).value -= resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
       }
       else{
-         (*firstIt).value -= determineValueOfInstruction(str2);
-         memory[(*firstIt).address] -= determineValueOfInstruction(str2);
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"sub");
+         (*firstIt).value -= resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
       }
+   }else if(option == "or"){
+      if(pnx != nullptr){
+         checkAndSetFlags((*firstIt).value,*pnx,sizeof((*firstIt).value)*8,"or");
+         (*firstIt).value |= *pnx;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"or");
+         (*firstIt).value |= resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+      else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"or");
+         (*firstIt).value |= resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+   }else if(option == "and"){
+      if(pnx != nullptr){
+         checkAndSetFlags((*firstIt).value,*pnx,sizeof((*firstIt).value)*8,"and");
+         (*firstIt).value &= *pnx;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"and");
+         (*firstIt).value &= resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+      else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"and");
+         (*firstIt).value &= resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+   }else if(option == "not"){
+      (*firstIt).value = ~(*firstIt).value;
+      memory[(*firstIt).address] = (*firstIt).value;
+   }else if(option == "xor"){
+      if(pnx != nullptr){
+         checkAndSetFlags((*firstIt).value,*pnx,sizeof((*firstIt).value)*8,"xor");
+         (*firstIt).value ^= *pnx;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"xor");
+         (*firstIt).value ^= resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+      else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"xor");
+         (*firstIt).value ^= resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+   }else if(option == "shr"){
+      if(pnx != nullptr){
+         checkAndSetFlags((*firstIt).value,*pnx,sizeof((*firstIt).value)*8,"shr");
+         (*firstIt).value = (*firstIt).value >> *pnx;
+          memory[(*firstIt).address] = (*firstIt).value;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shr");
+        (*firstIt).value  = (*firstIt).value >> resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+      else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shr");
+         (*firstIt).value = (*firstIt).value >> resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+   }else if(option == "shl"){
+      if(pnx != nullptr){
+         checkAndSetFlags((*firstIt).value,*pnx,sizeof((*firstIt).value)*8,"shl");
+         (*firstIt).value = (*firstIt).value << *pnx;
+          memory[(*firstIt).address] = (*firstIt).value;
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shl");
+        (*firstIt).value  = (*firstIt).value << resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+      else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shl");
+         (*firstIt).value = (*firstIt).value << resultOfInstruction;
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
+   }else if(option == "rcr"){
+
+   }else if(option == "rcl"){
+      
    }
 
 }
@@ -905,22 +1072,88 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       }
    }else if(option == "add"){
       if(str3 == "offset"){
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"add");
          memory[stoi(cleanVariable(str1))] += getVariableAddress(str2);
          setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
          }
       else{
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"add");
          memory[stoi(cleanVariable(str1))] += determineValueOfInstruction(str2);
          setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
       }
    }else if(option == "sub"){
       if(str3 == "offset"){
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"sub");
          memory[stoi(cleanVariable(str1))] -= getVariableAddress(str2);
          setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
          }
       else{
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"sub");
          memory[stoi(cleanVariable(str1))] -= determineValueOfInstruction(str2);
          setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
       }
+   }else if(option == "or"){
+      if(str3 == "offset"){
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"or");
+         memory[stoi(cleanVariable(str1))] |= getVariableAddress(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
+         }
+      else{
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"or");
+         memory[stoi(cleanVariable(str1))] |= determineValueOfInstruction(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
+      }
+   }else if(option == "and"){
+      if(str3 == "offset"){
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"and");
+         memory[stoi(cleanVariable(str1))] &= getVariableAddress(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
+         }
+      else{
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"and");
+         memory[stoi(cleanVariable(str1))] &= determineValueOfInstruction(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
+      }
+   }else if(option == "not"){
+      memory[stoi(cleanVariable(str1))] = ~memory[stoi(cleanVariable(str1))];
+      setVariableValue(getVariableNameFromVariableAddress(str1),0,option);
+   }else if(option == "xor"){
+      if(str3 == "offset"){
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"xor");
+         memory[stoi(cleanVariable(str1))] ^= getVariableAddress(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
+         }
+      else{
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"xor");
+         memory[stoi(cleanVariable(str1))] ^= determineValueOfInstruction(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
+      }
+   }else if(option == "shr"){
+      if(str3 == "offset"){
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"shr");
+         memory[stoi(cleanVariable(str1))] = memory[stoi(cleanVariable(str1))] >> getVariableAddress(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
+         }
+      else{
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"shr");
+         memory[stoi(cleanVariable(str1))] = memory[stoi(cleanVariable(str1))] >> determineValueOfInstruction(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
+      }
+   }else if(option == "shl"){
+      if(str3 == "offset"){
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"shl");
+         memory[stoi(cleanVariable(str1))] = memory[stoi(cleanVariable(str1))] << getVariableAddress(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
+         }
+      else{
+         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"shl");
+         memory[stoi(cleanVariable(str1))] = memory[stoi(cleanVariable(str1))] << determineValueOfInstruction(str2);
+         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
+      }
+   }else if(option == "rcr"){
+      
+   }else if(option == "rcl"){
+      
    }
 
 }
@@ -972,7 +1205,7 @@ void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,stri
          eightBitResult = num1EightBit + num2EightBit;
          if(decToBin(eightBitResult).at(0) == '1') sf = 1;
          else sf = 0;
-         if(num1EightBit+num2EightBit > 255) cf = 1;
+         if(num1EightBit + num2EightBit > 255) cf = 1;
          else cf = 0;
          if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
          else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
@@ -1036,47 +1269,103 @@ void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,stri
       }
    }else if(option == "mul"){
       if(bit == 8){
-         eightBitResult = num1EightBit * num2EightBit;
-         if(decToBin(eightBitResult).at(0) == '1') sf = 1;
-         else sf = 0;
-         if(num1EightBit*num2EightBit > 255) cf = 1;
+         eightBitResult = num1EightBit * number2;
+         if(num1EightBit * number2 > 255) cf = 1;
          else cf = 0;
          // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
          // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
          // else of = 0;
+
+      }else if(bit == 16){
+         sixteenBitResult = num1SixteenBit * number2;
+         if(num1SixteenBit * number2 > 65535) cf = 1;
+         else cf = 0;
+         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         // else of = 0;
+      }
+   }else if(option == "xor"){
+      of = cf = 0;
+      if(bit == 8){
+         eightBitResult = num1EightBit ^ num2EightBit;
+         if(decToBin(eightBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+
          if(eightBitResult == 0) zf = 1;
          else zf = 0;
          
          unsigned char number1Binary = binToDec(decToBin(num1EightBit).substr(4,8));
          unsigned char number2Binary = binToDec(decToBin(num2EightBit).substr(4,8));
-         if(number1Binary * number2Binary > 15) af = 1;
+         if(number1Binary ^ number2Binary > 15) af = 1;
          // if(countSpecificCharacter(decToBin(eightBitResult),'1') % 2 == 0) pf = 1;
          // else pf = 0;
       }else if(bit == 16){
-         sixteenBitResult = num1SixteenBit * num2SixteenBit;
+         sixteenBitResult = num1SixteenBit ^ num2SixteenBit;
          if(decToBin(sixteenBitResult).at(0) == '1') sf = 1;
          else sf = 0;
-         if(num1SixteenBit*num2SixteenBit > 65535) cf = 1;
-         else cf = 0;
-         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
-         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
-         // else of = 0;
+
          if(sixteenBitResult == 0) zf = 1;
          else zf = 0;
+
          unsigned char number1Binary = binToDec(decToBin(num1SixteenBit).substr(12,16));
          unsigned char number2Binary = binToDec(decToBin(num2SixteenBit).substr(12,16));
-         if(number1Binary * number2Binary > 15) af = 1;
+         if(number1Binary ^ number2Binary > 15) af = 1;
       }
-   }else if(option == "div"){
-
-   }else if(option == "xor"){
 
    }else if(option == "or"){
+      of = cf = 0;
+      if(bit == 8){
+         eightBitResult = num1EightBit | num2EightBit;
+         if(decToBin(eightBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
 
+         if(eightBitResult == 0) zf = 1;
+         else zf = 0;
+         
+         unsigned char number1Binary = binToDec(decToBin(num1EightBit).substr(4,8));
+         unsigned char number2Binary = binToDec(decToBin(num2EightBit).substr(4,8));
+         if(number1Binary | number2Binary > 15) af = 1;
+         // if(countSpecificCharacter(decToBin(eightBitResult),'1') % 2 == 0) pf = 1;
+         // else pf = 0;
+      }else if(bit == 16){
+         sixteenBitResult = num1SixteenBit | num2SixteenBit;
+         if(decToBin(sixteenBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+
+         if(sixteenBitResult == 0) zf = 1;
+         else zf = 0;
+
+         unsigned char number1Binary = binToDec(decToBin(num1SixteenBit).substr(12,16));
+         unsigned char number2Binary = binToDec(decToBin(num2SixteenBit).substr(12,16));
+         if(number1Binary | number2Binary > 15) af = 1;
+      }
    }else if(option == "and"){
+      of = cf = 0;
+      if(bit == 8){
+         eightBitResult = num1EightBit & num2EightBit;
+         if(decToBin(eightBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
 
-   }else if(option == "not"){
+         if(eightBitResult == 0) zf = 1;
+         else zf = 0;
+         
+         unsigned char number1Binary = binToDec(decToBin(num1EightBit).substr(4,8));
+         unsigned char number2Binary = binToDec(decToBin(num2EightBit).substr(4,8));
+         if(number1Binary & number2Binary > 15) af = 1;
+         // if(countSpecificCharacter(decToBin(eightBitResult),'1') % 2 == 0) pf = 1;
+         // else pf = 0;
+      }else if(bit == 16){
+         sixteenBitResult = num1SixteenBit & num2SixteenBit;
+         if(decToBin(sixteenBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
 
+         if(sixteenBitResult == 0) zf = 1;
+         else zf = 0;
+
+         unsigned char number1Binary = binToDec(decToBin(num1SixteenBit).substr(12,16));
+         unsigned char number2Binary = binToDec(decToBin(num2SixteenBit).substr(12,16));
+         if(number1Binary & number2Binary > 15) af = 1;
+      }
    }else if(option == "rcl"){
       
    }else if(option == "rcr"){
@@ -1084,8 +1373,6 @@ void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,stri
    }else if(option == "shl"){
       
    }else if(option == "shr"){
-      
-   }else if(option == "nop"){
       
    }else if(option == "cmp"){
       
@@ -1119,6 +1406,14 @@ void setVariableValue(string variableName,int value,string option){
             if(option == "mov") (*it).value = value;
             else if(option == "add") (*it).value += value;
             else if(option == "sub") (*it).value -= value;
+            else if(option == "or") (*it).value |= value;
+            else if(option == "and") (*it).value &= value;
+            else if(option == "not") (*it).value = ~(*it).value;
+            else if(option == "xor") (*it).value ^= value;
+            else if(option == "shr") (*it).value = (*it).value >> value;
+            else if(option == "shl") (*it).value = (*it).value << value;
+            else if(option == "rcr") (*it).value -= value;
+            else if(option == "rcl") (*it).value -= value;
             isVariableFound1 = true;
             break;
          }
@@ -1130,6 +1425,14 @@ void setVariableValue(string variableName,int value,string option){
             if(option == "mov") (*it2).value = value;
             else if(option == "add") (*it2).value += value;
             else if(option == "sub") (*it2).value -= value;
+            else if(option == "or") (*it2).value |= value;
+            else if(option == "and") (*it2).value &= value;
+            else if(option == "not") (*it2).value = ~(*it2).value;
+            else if(option == "xor") (*it2).value ^= value;
+            else if(option == "shr") (*it2).value = (*it2).value >> value;
+            else if(option == "shl") (*it2).value = (*it2).value << value;
+            else if(option == "rcr") (*it2).value -= value;
+            else if(option == "rcl") (*it2).value -= value;
             isVariableFound2 = true;
             break;
          }
