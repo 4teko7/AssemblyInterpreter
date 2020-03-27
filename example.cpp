@@ -137,7 +137,7 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
 
 // SET VALUE OF SOMETHING
 void setVariableAddress(string& variable,int address);
-void setVariableValue(string variableName,int value,string option);
+void setVariableValue(string variableName,int value);
 void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,string option);
 
 
@@ -401,17 +401,13 @@ void processLabels(int index){
          afterCompare.clear();
       }  
       
-      if(firstWord == "mov" || firstWord == "add" || firstWord == "sub" || firstWord == "xor" || firstWord == "or" || firstWord == "and" || firstWord == "not" || firstWord == "shr" || firstWord == "shl"){
+      if(firstWord == "mov" || firstWord == "add" || firstWord == "sub" || firstWord == "xor" || firstWord == "or" || firstWord == "and" || firstWord == "not" || firstWord == "shr" || firstWord == "shl" || firstWord == "rcl" || firstWord == "rcr"){
          if(line.find("offset") != string::npos) thirdWordsComma(linestream,secondWord,thirdWord,forthWord);
          else twoWordsComma(linestream,secondWord,thirdWord);
          processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
       }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop"){
          getLinestreamLine(linestream,secondWord,' ');
          processOneWordInstructions(firstWord,secondWord);
-      }else if(firstWord == "rcl"){
-         
-      }else if(firstWord == "rcr"){
-         
       }else if(firstWord == "nop"){
          
       }else if(firstWord == "cmp"){
@@ -792,95 +788,177 @@ void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>
       }
    }else if(option == "or"){
       if(secondReg != nullptr){
-         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"add");
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"or");
          **firstReg |= *secondReg;
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
          int resultOfInstruction = 0;
          resultOfInstruction = getVariableAddress(str2);
-         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"or");
          **firstReg |= getVariableAddress(str2);
       }else{
          int resultOfInstruction = 0;
          resultOfInstruction = determineValueOfInstruction(str2);
-         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"or");
          **firstReg |= resultOfInstruction;
       }
    }else if(option == "and"){
       if(secondReg != nullptr){
-         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"add");
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"and");
          **firstReg &= *secondReg;
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
          int resultOfInstruction = 0;
          resultOfInstruction = getVariableAddress(str2);
-         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"and");
          **firstReg &= getVariableAddress(str2);
       }else{
          int resultOfInstruction = 0;
          resultOfInstruction = determineValueOfInstruction(str2);
-         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"and");
          **firstReg &= resultOfInstruction;
       }
    }else if(option == "not"){
       **firstReg = ~(**firstReg);
    }else if(option == "xor"){
       if(secondReg != nullptr){
-         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"add");
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"xor");
          **firstReg ^= *secondReg;
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
          int resultOfInstruction = 0;
          resultOfInstruction = getVariableAddress(str2);
-         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"xor");
          **firstReg ^= getVariableAddress(str2);
       }else{
          int resultOfInstruction = 0;
          resultOfInstruction = determineValueOfInstruction(str2);
-         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"add");
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"xor");
          **firstReg ^= resultOfInstruction;
       }
    }else if(option == "shr"){
       if(secondReg != nullptr){
          checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"shr");
-         **firstReg = **firstReg >> *secondReg;
+         for (int i = 0; i < *secondReg; i++) {
+            cf = **firstReg & 1;
+            **firstReg >>= 1;
+         }
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
          int resultOfInstruction = 0;
          resultOfInstruction = getVariableAddress(str2);
          checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"shr");
-         **firstReg = **firstReg >> getVariableAddress(str2);
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = **firstReg & 1;
+            **firstReg >>= 1;
+         }
       }else{
          int resultOfInstruction = 0;
          resultOfInstruction = determineValueOfInstruction(str2);
          checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"shr");
-         **firstReg = **firstReg >> resultOfInstruction;
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = **firstReg & 1;
+            **firstReg >>= 1;
+            printBits(ax);
+         }
       }
    }else if(option == "shl"){
       if(secondReg != nullptr){
          checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"shl");
-        **firstReg = **firstReg << *secondReg;
+         for (int i = 0; i < *secondReg; i++) {
+            cf = decToBin(**firstReg).at(0)-'0';
+            **firstReg <<= 1;
+         }
+         
+        
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
          int resultOfInstruction = 0;
          resultOfInstruction = getVariableAddress(str2);
          checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"shl");
-         **firstReg = **firstReg << getVariableAddress(str2);
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = decToBin(**firstReg).at(0)-'0';
+            **firstReg <<= 1;
+         }
       }else{
          int resultOfInstruction = 0;
          resultOfInstruction = determineValueOfInstruction(str2);
          checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"shl");
-         **firstReg = **firstReg << resultOfInstruction;
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = decToBin(**firstReg).at(0)-'0';
+            **firstReg <<= 1;
+            printBits(ax);
+         }
       }
    }else if(option == "rcr"){
-
+      if(secondReg != nullptr){
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"rcr");
+         for (int i = 0; i < *secondReg; i++) {
+            cf = **firstReg & 1;
+            unsigned short temp = cf << sizeof(**firstReg) * 8;
+            **firstReg >>= 1;
+            **firstReg |= temp;
+         }
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"rcr");
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = **firstReg & 1;
+            unsigned short temp = cf << sizeof(**firstReg) * 8;
+            **firstReg >>= 1;
+            **firstReg |= temp;
+         }
+      }else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"rcr");
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = **firstReg & 1;
+            unsigned short temp = cf << sizeof(**firstReg) * 8 - 1;
+            **firstReg >>= 1;
+            **firstReg |= temp;
+         }
+      }
    }else if(option == "rcl"){
-      
+      if(secondReg != nullptr){
+         checkAndSetFlags(**firstReg,*secondReg,sizeof(**firstReg)*8,"rcl");
+         for (int i = 0; i < *secondReg; i++) {
+            cf = decToBin(**firstReg).at(0)-'0';
+            **firstReg <<= 1;
+            **firstReg |= cf;
+         }
+         
+        
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"rcl");
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = decToBin(**firstReg).at(0)-'0';
+            **firstReg <<= 1;
+            **firstReg |= cf;
+         }
+      }else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"rcl");
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = decToBin(**firstReg).at(0)-'0';
+            **firstReg <<= 1;
+            **firstReg |= cf;
+            printBits(ax);
+         }
+      }
    }
 }
 
@@ -1011,149 +1089,211 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
    }else if(option == "shr"){
       if(pnx != nullptr){
          checkAndSetFlags((*firstIt).value,*pnx,sizeof((*firstIt).value)*8,"shr");
-         (*firstIt).value = (*firstIt).value >> *pnx;
-          memory[(*firstIt).address] = (*firstIt).value;
+         for (int i = 0; i < *pnx; i++) {
+            cf = (*firstIt).value & 1;
+            (*firstIt).value >>= 1;
+         }
+         memory[(*firstIt).address] = (*firstIt).value;
+
+
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
          int resultOfInstruction = 0;
          resultOfInstruction = getVariableAddress(str2);
          checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shr");
-        (*firstIt).value  = (*firstIt).value >> resultOfInstruction;
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = (*firstIt).value & 1;
+            (*firstIt).value >>= 1;
+         }
          memory[(*firstIt).address] = (*firstIt).value;
       }
       else{
          int resultOfInstruction = 0;
          resultOfInstruction = determineValueOfInstruction(str2);
          checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shr");
-         (*firstIt).value = (*firstIt).value >> resultOfInstruction;
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = (*firstIt).value & 1;
+            (*firstIt).value >>= 1;
+         }
          memory[(*firstIt).address] = (*firstIt).value;
       }
    }else if(option == "shl"){
       if(pnx != nullptr){
          checkAndSetFlags((*firstIt).value,*pnx,sizeof((*firstIt).value)*8,"shl");
-         (*firstIt).value = (*firstIt).value << *pnx;
-          memory[(*firstIt).address] = (*firstIt).value;
+         for (int i = 0; i < *pnx; i++) {
+            cf = decToBin((*firstIt).value).at(0)-'0';
+            (*firstIt).value <<= 1;
+         }  
+         memory[(*firstIt).address] = (*firstIt).value;
+
       }
          // VARIABLE WILL BE MOVED.
       else if(str3 == "offset"){
          int resultOfInstruction = 0;
          resultOfInstruction = getVariableAddress(str2);
          checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shl");
-        (*firstIt).value  = (*firstIt).value << resultOfInstruction;
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = decToBin((*firstIt).value).at(0)-'0';
+            (*firstIt).value <<= 1;
+         }
          memory[(*firstIt).address] = (*firstIt).value;
+
+
       }
       else{
          int resultOfInstruction = 0;
          resultOfInstruction = determineValueOfInstruction(str2);
          checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shl");
-         (*firstIt).value = (*firstIt).value << resultOfInstruction;
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = decToBin((*firstIt).value).at(0)-'0';
+            (*firstIt).value <<= 1;
+         }
          memory[(*firstIt).address] = (*firstIt).value;
       }
    }else if(option == "rcr"){
+      if(pnx != nullptr){
+         checkAndSetFlags((*firstIt).value,*pnx,sizeof((*firstIt).value)*8,"rcr");
+         for (int i = 0; i < *pnx; i++) {
+            cf = (*firstIt).value & 1;
+            unsigned short temp = cf << sizeof((*firstIt).value) * 8;
+            (*firstIt).value >>= 1;
+            (*firstIt).value |= temp;
+         } 
+         memory[(*firstIt).address] = (*firstIt).value;
 
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"rcr");
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = (*firstIt).value & 1;
+            unsigned short temp = cf << sizeof((*firstIt).value) * 8;
+            (*firstIt).value >>= 1;
+            (*firstIt).value |= temp;
+         }
+         memory[(*firstIt).address] = (*firstIt).value;
+
+
+      }
+      else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"rcr");
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = (*firstIt).value & 1;
+            unsigned short temp = cf << sizeof((*firstIt).value) * 8 - 1;
+            (*firstIt).value >>= 1;
+            (*firstIt).value |= temp;
+         }
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
    }else if(option == "rcl"){
-      
+      if(pnx != nullptr){
+         checkAndSetFlags((*firstIt).value,*pnx,sizeof((*firstIt).value)*8,"rcl");
+         for (int i = 0; i < *pnx; i++) {
+            cf = decToBin((*firstIt).value).at(0)-'0';
+            (*firstIt).value <<= 1;
+            (*firstIt).value |= cf;
+         }
+         memory[(*firstIt).address] = (*firstIt).value;
+
+      }
+         // VARIABLE WILL BE MOVED.
+      else if(str3 == "offset"){
+         int resultOfInstruction = 0;
+         resultOfInstruction = getVariableAddress(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"rcl");
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = decToBin((*firstIt).value).at(0)-'0';
+            (*firstIt).value <<= 1;
+            (*firstIt).value |= cf;
+         }
+         memory[(*firstIt).address] = (*firstIt).value;
+
+
+      }
+      else{
+         int resultOfInstruction = 0;
+         resultOfInstruction = determineValueOfInstruction(str2);
+         checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"rcl");
+         for (int i = 0; i < resultOfInstruction; i++) {
+            cf = decToBin((*firstIt).value).at(0)-'0';
+            (*firstIt).value <<= 1;
+            (*firstIt).value |= cf;
+            printBits(ax);
+         }
+         memory[(*firstIt).address] = (*firstIt).value;
+      }
    }
 
 }
 
 
 void instructionForBrakets(string str1,string str2,string str3,string option) {
-   
+   int result = 0;
+   result = (str3 == "offset") ? getVariableAddress(str2) : determineValueOfInstruction(str2);
+
    if(option == "mov"){
-      if(str3 == "offset"){
-         memory[stoi(cleanVariable(str1))] = getVariableAddress(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
-         }
-      else{
-         memory[stoi(cleanVariable(str1))] = determineValueOfInstruction(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
-      }
+      memory[stoi(cleanVariable(str1))] = result;
+      setVariableValue(getVariableNameFromVariableAddress(str1),result);
    }else if(option == "add"){
-      if(str3 == "offset"){
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"add");
-         memory[stoi(cleanVariable(str1))] += getVariableAddress(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
-         }
-      else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"add");
-         memory[stoi(cleanVariable(str1))] += determineValueOfInstruction(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
-      }
+      checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"add");
+      memory[stoi(cleanVariable(str1))] += result;
+      setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
    }else if(option == "sub"){
-      if(str3 == "offset"){
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"sub");
-         memory[stoi(cleanVariable(str1))] -= getVariableAddress(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
-         }
-      else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"sub");
-         memory[stoi(cleanVariable(str1))] -= determineValueOfInstruction(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
-      }
+      checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"sub");
+      memory[stoi(cleanVariable(str1))] -= result;
+      setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
    }else if(option == "or"){
-      if(str3 == "offset"){
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"or");
-         memory[stoi(cleanVariable(str1))] |= getVariableAddress(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
-         }
-      else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"or");
-         memory[stoi(cleanVariable(str1))] |= determineValueOfInstruction(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
-      }
+      checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"or");
+      memory[stoi(cleanVariable(str1))] |= result;
+      setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
    }else if(option == "and"){
-      if(str3 == "offset"){
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"and");
-         memory[stoi(cleanVariable(str1))] &= getVariableAddress(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
-         }
-      else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"and");
-         memory[stoi(cleanVariable(str1))] &= determineValueOfInstruction(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
-      }
+      checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"and");
+      memory[stoi(cleanVariable(str1))] &= result;
+      setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
    }else if(option == "not"){
       memory[stoi(cleanVariable(str1))] = ~memory[stoi(cleanVariable(str1))];
-      setVariableValue(getVariableNameFromVariableAddress(str1),0,option);
+      setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
    }else if(option == "xor"){
-      if(str3 == "offset"){
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"xor");
-         memory[stoi(cleanVariable(str1))] ^= getVariableAddress(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
-         }
-      else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"xor");
-         memory[stoi(cleanVariable(str1))] ^= determineValueOfInstruction(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
-      }
+      checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"xor");
+      memory[stoi(cleanVariable(str1))] ^= result;
+      setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
    }else if(option == "shr"){
-      if(str3 == "offset"){
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"shr");
-         memory[stoi(cleanVariable(str1))] = memory[stoi(cleanVariable(str1))] >> getVariableAddress(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
-         }
-      else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"shr");
-         memory[stoi(cleanVariable(str1))] = memory[stoi(cleanVariable(str1))] >> determineValueOfInstruction(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
+      checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"shr");
+      for (int i = 0; i < result; i++) {
+         cf = memory[stoi(cleanVariable(str1))] & 1;
+         memory[stoi(cleanVariable(str1))] >>= 1;
       }
+      setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
    }else if(option == "shl"){
-      if(str3 == "offset"){
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],getVariableAddress(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"shl");
-         memory[stoi(cleanVariable(str1))] = memory[stoi(cleanVariable(str1))] << getVariableAddress(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),getVariableAddress(str2),option);
-         }
-      else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],determineValueOfInstruction(str2),sizeof(memory[stoi(cleanVariable(str1))])*8,"shl");
-         memory[stoi(cleanVariable(str1))] = memory[stoi(cleanVariable(str1))] << determineValueOfInstruction(str2);
-         setVariableValue(getVariableNameFromVariableAddress(str1),determineValueOfInstruction(str2),option);
-      }
+      checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"shl");
+      for (int i = 0; i < result; i++) {
+            cf = decToBin(memory[stoi(cleanVariable(str1))]).at(0)-'0';
+            memory[stoi(cleanVariable(str1))] <<= 1;
+         } 
+      setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
+
    }else if(option == "rcr"){
-      
+      checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"rcr");
+      for (int i = 0; i < result; i++) {
+         cf = memory[stoi(cleanVariable(str1))] & 1;
+         unsigned short temp = cf << sizeof(memory[stoi(cleanVariable(str1))]) * 8;
+         memory[stoi(cleanVariable(str1))] >>= 1;
+         memory[stoi(cleanVariable(str1))] |= temp;
+      } 
+      setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
    }else if(option == "rcl"){
-      
+      checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"rcl");
+      for (int i = 0; i < result; i++) {
+            cf = decToBin(memory[stoi(cleanVariable(str1))]).at(0)-'0';
+            memory[stoi(cleanVariable(str1))] <<= 1;
+            memory[stoi(cleanVariable(str1))] |= cf;
+         }
+      setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
    }
 
 }
@@ -1395,7 +1535,7 @@ void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,stri
 
 
 // FUNCTIONS ABOUT MEMORY ADDRESS
-void setVariableValue(string variableName,int value,string option){
+void setVariableValue(string variableName,int value){
    variableName = cleanVariable(variableName);
    std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
@@ -1403,17 +1543,7 @@ void setVariableValue(string variableName,int value,string option){
       bool isVariableFound2 = false;
       for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
          if(variableName == (*it).name){
-            if(option == "mov") (*it).value = value;
-            else if(option == "add") (*it).value += value;
-            else if(option == "sub") (*it).value -= value;
-            else if(option == "or") (*it).value |= value;
-            else if(option == "and") (*it).value &= value;
-            else if(option == "not") (*it).value = ~(*it).value;
-            else if(option == "xor") (*it).value ^= value;
-            else if(option == "shr") (*it).value = (*it).value >> value;
-            else if(option == "shl") (*it).value = (*it).value << value;
-            else if(option == "rcr") (*it).value -= value;
-            else if(option == "rcl") (*it).value -= value;
+            (*it).value = value;
             isVariableFound1 = true;
             break;
          }
@@ -1422,17 +1552,7 @@ void setVariableValue(string variableName,int value,string option){
       if(!isVariableFound1){
       for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++) {
          if(variableName == (*it2).name){
-            if(option == "mov") (*it2).value = value;
-            else if(option == "add") (*it2).value += value;
-            else if(option == "sub") (*it2).value -= value;
-            else if(option == "or") (*it2).value |= value;
-            else if(option == "and") (*it2).value &= value;
-            else if(option == "not") (*it2).value = ~(*it2).value;
-            else if(option == "xor") (*it2).value ^= value;
-            else if(option == "shr") (*it2).value = (*it2).value >> value;
-            else if(option == "shl") (*it2).value = (*it2).value << value;
-            else if(option == "rcr") (*it2).value -= value;
-            else if(option == "rcl") (*it2).value -= value;
+            (*it).value = value;
             isVariableFound2 = true;
             break;
          }

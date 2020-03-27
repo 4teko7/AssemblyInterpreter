@@ -1,20 +1,22 @@
-alti db '6'
-yedi db 7
-sekiz db 8
-a db 'a'
-on db 10
-doksanYedi db 97
-altiw dw '6'
-yediw dw 7
-sekizw dw 8
-aw dw 'a'
-onw dbw 10
-doksanYediw dw 97
-
-
-
+alti db 00000001b
+shr alti,2
+mov alti,10000000b
+shl alti,2
+mov alti,10000001b
+rcl alti,2
+mov alti,10000001b
+rcr alti,2
+or alti,00001000b
+and alti,00000000b
+not alti
+mov bx,1
+mov ax,1101000000001001b
+rcl ax,bx
+rcl ax,5
+shl ax,3
+shr ax,8
 mov ax,0000000000001000b
-mov bx,0
+
 mul bx
 mov al,00000001b
 sub al,01000010b
@@ -47,3 +49,15 @@ int 20h
 int 20h
 int 20h
 
+
+yedi db 7
+sekiz db 8
+a db 'a'
+on db 10
+doksanYedi db 97
+altiw dw '6'
+yediw dw 7
+sekizw dw 8
+aw dw 'a'
+onw dbw 10
+doksanYediw dw 97
