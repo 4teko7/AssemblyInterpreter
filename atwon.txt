@@ -1,3 +1,15 @@
+mov al,00001000b
+jmp start
+start:
+    add al,1d
+    mov bl,00001010b
+    cmp al,bl
+    jc start
+    cmp al,00000100b
+    mov ax,0000000001000000b
+    mov bx,16
+    mul bx
+
 alti db 00000001b
 shr alti,2
 mov alti,10000000b
