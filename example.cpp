@@ -19,14 +19,13 @@ unsigned short bx = 0 ;
 unsigned short cx = 0 ; 
 unsigned short dx = 0 ;
 
-// unsigned short di = 0 ; 
-// unsigned short si = 0 ; 
-// unsigned short bp = 0 ; 
+unsigned short di = 0 ; 
+unsigned short si = 0 ; 
+unsigned short bp = 0 ; 
 
 unsigned short PC = 0 ; 
 // unsigned short sp = 0 ;
 unsigned short sp = (2<<15)-2 ;
-
 
 
 bool zf = 0;              // zero flag
@@ -59,6 +58,9 @@ unsigned short *pax = &ax ;
 unsigned short *pbx = &bx ; 
 unsigned short *pcx = &cx ; 
 unsigned short *pdx = &dx ; 
+unsigned short *psi = &si; 
+unsigned short *pdi = &di; 
+unsigned short *pbp = &bp; 
 unsigned short *psp = &sp; 
 
 
@@ -466,20 +468,26 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
       bool isFirstVariableFound2 = false;
       unsigned char eightBit = 0;
    // For Register Names
-      if(str1.find("[bx]") != string::npos){
-         if(str1.find("w[bx]") != string::npos || str1.find("w.[bx]") != string::npos) memoryWFound = true;
-         if(str1.find("b[bx]") != string::npos || str1.find("b.[bx]") != string::npos) memoryBFound = true;
+      if(str1.find("[bx]") != string::npos || str1.find("[si]") != string::npos || str1.find("[di]") != string::npos || str1.find("[bp]") != string::npos){
+         if(str1.find("w[bx]") != string::npos || str1.find("w.[bx]") != string::npos || str1.find("w[si]") != string::npos || str1.find("w.[si]") != string::npos || str1.find("w[di]") != string::npos || str1.find("w.[di]") != string::npos || str1.find("w[bp]") != string::npos || str1.find("w.[bp]") != string::npos) memoryWFound = true;
+         if(str1.find("b[bx]") != string::npos || str1.find("b.[bx]") != string::npos || str1.find("b[si]") != string::npos || str1.find("b.[si]") != string::npos || str1.find("b[di]") != string::npos || str1.find("b.[di]") != string::npos || str1.find("b[bp]") != string::npos || str1.find("b.[bp]") != string::npos) memoryBFound = true;
          std::stringstream sstm;
-         sstm << "[" << (*pbx) << "h]";
+         if(str1.find("[bx]") != string::npos) sstm << "[" << (*pbx) << "h]";
+         if(str1.find("[si]") != string::npos) sstm << "[" << (*psi) << "h]";
+         if(str1.find("[di]") != string::npos) sstm << "[" << (*pdi) << "h]";
+         if(str1.find("[bp]") != string::npos) sstm << "[" << (*pbp) << "h]";
          str1 = sstm.str();
 
 
       }
-      if(str2.find("[bx]") != string::npos){
-         if(str2.find("w[bx]") != string::npos || str2.find("w.[bx]") != string::npos) memoryWFound = true;
-         if(str2.find("b[bx]") != string::npos || str2.find("b.[bx]") != string::npos) memoryBFound = true;
+      if(str2.find("[bx]") != string::npos || str2.find("[si]") != string::npos || str2.find("[di]") != string::npos || str2.find("[bp]") != string::npos){
+         if(str2.find("w[bx]") != string::npos || str2.find("w.[bx]") != string::npos || str2.find("w[si]") != string::npos || str2.find("w.[si]") != string::npos || str2.find("w[di]") != string::npos || str2.find("w.[di]") != string::npos || str2.find("w[bp]") != string::npos || str2.find("w.[bp]") != string::npos) memoryWFound = true;
+         if(str2.find("b[bx]") != string::npos || str2.find("b.[bx]") != string::npos || str2.find("b[si]") != string::npos || str2.find("b.[si]") != string::npos || str2.find("b[di]") != string::npos || str2.find("b.[di]") != string::npos || str2.find("b[bp]") != string::npos || str2.find("b.[bp]") != string::npos) memoryBFound = true;
          std::stringstream sstm;
-         sstm << "[" << (*pbx) << "h]";
+         if(str1.find("[bx]") != string::npos) sstm << "[" << (*pbx) << "h]";
+         if(str1.find("[si]") != string::npos) sstm << "[" << (*psi) << "h]";
+         if(str1.find("[di]") != string::npos) sstm << "[" << (*pdi) << "h]";
+         if(str1.find("[bp]") != string::npos) sstm << "[" << (*pbp) << "h]";
          str2 = sstm.str();
 
       }
