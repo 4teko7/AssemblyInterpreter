@@ -80,6 +80,7 @@ using namespace std;
 
 struct dbVariable{
     string name;
+    string type = "db";
     int address = 0;
     unsigned char value = 0;
 };
@@ -87,6 +88,7 @@ struct dbVariable{
 
 struct dwVariable{
     string name;
+    string type = "dw";
     int address = 0;
     unsigned short value = 0;
 };
@@ -193,7 +195,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option);
 void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl);
 void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl);
 void comparison(unsigned short firstValue,unsigned short secondValue);
-
+template <class typeOfVariableValue> void setMemoryForDbAndDw(int address,typeOfVariableValue variableValue,string typeOfVariable);
 
 int main() {
 
@@ -470,8 +472,8 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
       unsigned char eightBit = 0;
    // For Register Names
       if(str1.find("[bx]") != string::npos || str1.find("[si]") != string::npos || str1.find("[di]") != string::npos || str1.find("[bp]") != string::npos){
-         if(str1.find("w[bx]") != string::npos || str1.find("w.[bx]") != string::npos || str1.find("w[si]") != string::npos || str1.find("w.[si]") != string::npos || str1.find("w[di]") != string::npos || str1.find("w.[di]") != string::npos || str1.find("w[bp]") != string::npos || str1.find("w.[bp]") != string::npos) sixteenBitForMemory = true;
-         if(str1.find("b[bx]") != string::npos || str1.find("b.[bx]") != string::npos || str1.find("b[si]") != string::npos || str1.find("b.[si]") != string::npos || str1.find("b[di]") != string::npos || str1.find("b.[di]") != string::npos || str1.find("b[bp]") != string::npos || str1.find("b.[bp]") != string::npos) eightBitForMemory = true;
+         if(str1.find("w[bx]") != string::npos || str1.find("w.[bx]") != string::npos || str1.find("w [bx]") != string::npos || str1.find("w[si]") != string::npos || str1.find("w.[si]") != string::npos || str1.find("w [si]") != string::npos || str1.find("w[di]") != string::npos || str1.find("w.[di]") != string::npos || str1.find("w [di]") != string::npos || str1.find("w[bp]") != string::npos || str1.find("w.[bp]") != string::npos || str1.find("w [bp]") != string::npos) sixteenBitForMemory = true;
+         if(str1.find("b[bx]") != string::npos || str1.find("b.[bx]") != string::npos || str1.find("b [bx]") != string::npos || str1.find("b[si]") != string::npos || str1.find("b.[si]") != string::npos || str1.find("b [si]") != string::npos || str1.find("b[di]") != string::npos || str1.find("b.[di]") != string::npos || str1.find("b [di]") != string::npos || str1.find("b[bp]") != string::npos || str1.find("b.[bp]") != string::npos || str1.find("b [bp]") != string::npos) eightBitForMemory = true;
          std::stringstream sstm;
          if(str1.find("[bx]") != string::npos) sstm << "[" << (*pbx) << "h]";
          if(str1.find("[si]") != string::npos) sstm << "[" << (*psi) << "h]";
@@ -482,8 +484,8 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
 
       }
       if(str2.find("[bx]") != string::npos || str2.find("[si]") != string::npos || str2.find("[di]") != string::npos || str2.find("[bp]") != string::npos){
-         if(str2.find("w[bx]") != string::npos || str2.find("w.[bx]") != string::npos || str2.find("w[si]") != string::npos || str2.find("w.[si]") != string::npos || str2.find("w[di]") != string::npos || str2.find("w.[di]") != string::npos || str2.find("w[bp]") != string::npos || str2.find("w.[bp]") != string::npos) sixteenBitForMemory = true;
-         if(str2.find("b[bx]") != string::npos || str2.find("b.[bx]") != string::npos || str2.find("b[si]") != string::npos || str2.find("b.[si]") != string::npos || str2.find("b[di]") != string::npos || str2.find("b.[di]") != string::npos || str2.find("b[bp]") != string::npos || str2.find("b.[bp]") != string::npos) eightBitForMemory = true;
+         if(str2.find("w[bx]") != string::npos || str2.find("w.[bx]") != string::npos || str2.find("w [bx]") != string::npos || str2.find("w[si]") != string::npos || str2.find("w.[si]") != string::npos || str2.find("w [si]") != string::npos || str2.find("w[di]") != string::npos || str2.find("w.[di]") != string::npos || str2.find("w [di]") != string::npos || str2.find("w[bp]") != string::npos || str2.find("w.[bp]") != string::npos || str2.find("w [bp]") != string::npos) sixteenBitForMemory = true;
+         if(str2.find("b[bx]") != string::npos || str2.find("b.[bx]") != string::npos || str2.find("b [bx]") != string::npos || str2.find("b[si]") != string::npos || str2.find("b.[si]") != string::npos || str2.find("b [si]") != string::npos || str2.find("b[di]") != string::npos || str2.find("b.[di]") != string::npos || str2.find("b [di]") != string::npos || str2.find("b[bp]") != string::npos || str2.find("b.[bp]") != string::npos || str2.find("b [bp]") != string::npos) eightBitForMemory = true;
          std::stringstream sstm;
          if(str2.find("[bx]") != string::npos) sstm << "[" << (*pbx) << "h]";
          if(str2.find("[si]") != string::npos) sstm << "[" << (*psi) << "h]";
@@ -719,6 +721,7 @@ int getOtherValue(string str1) {
       }
       
    }else if((str1.at(0) == '[' && str1.at(str1.length()-1) == ']') && isDigitDecimal(str1,1)){
+      
       result = memory[stoi(cleanVariable(str1))];
    }else{
       
@@ -840,44 +843,44 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
    else resultOfInstruction = *pnx;
    if(option == "mov"){
       (*firstIt).value = resultOfInstruction;
-      memory[(*firstIt).address] = (*firstIt).value;
+      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
    }else if(option == "add"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"add");
       (*firstIt).value += resultOfInstruction;
-      memory[(*firstIt).address] = (*firstIt).value;
+      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
    }else if(option == "sub"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"sub");
       (*firstIt).value -= resultOfInstruction;
-      memory[(*firstIt).address] = (*firstIt).value;
+      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
    }else if(option == "or"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"or");
       (*firstIt).value |= resultOfInstruction;
-      memory[(*firstIt).address] = (*firstIt).value;
+      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
    }else if(option == "and"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"and");
       (*firstIt).value &= resultOfInstruction;
-      memory[(*firstIt).address] = (*firstIt).value;
+      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
    }else if(option == "not"){
       (*firstIt).value = ~(*firstIt).value;
-      memory[(*firstIt).address] = (*firstIt).value;
+      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
    }else if(option == "xor"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"xor");
       (*firstIt).value ^= resultOfInstruction;
-      memory[(*firstIt).address] = (*firstIt).value;
+      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
    }else if(option == "shr"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shr");
       for (int i = 0; i < resultOfInstruction; i++) {
          cf = (*firstIt).value & 1;
          (*firstIt).value >>= 1;
       }
-      memory[(*firstIt).address] = (*firstIt).value;
+      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
    }else if(option == "shl"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shl");
       for (int i = 0; i < resultOfInstruction; i++) {
          cf = decToBin((*firstIt).value).at(0)-'0';
          (*firstIt).value <<= 1;
       }
-      memory[(*firstIt).address] = (*firstIt).value;
+      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
    }else if(option == "rcr"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"rcr");
       for (int i = 0; i < resultOfInstruction; i++) {
@@ -886,7 +889,7 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
          (*firstIt).value >>= 1;
          (*firstIt).value |= temp;
       }
-      memory[(*firstIt).address] = (*firstIt).value;
+      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
    }else if(option == "rcl"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"rcl");
       for (int i = 0; i < resultOfInstruction; i++) {
@@ -896,7 +899,7 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
          (*firstIt).value |= temp;
          // printBits(ax);
       }
-      memory[(*firstIt).address] = (*firstIt).value;
+      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
    }else if(option == "cmp"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"sub");
    }
@@ -907,17 +910,13 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
 void instructionForBrakets(string str1,string str2,string str3,string option) {
    int result = 0;
    result = (str3 == "offset") ? getVariableAddress(str2) : determineValueOfInstruction(str2);
-
+   int bitNumber = sixteenBitForMemory ? 16 : 8;
+   int address = stoi(cleanVariable(str1));
+   unsigned short temp = 0;
+   string type = sixteenBitForMemory ? "dw" : "db";
    if(option == "mov"){
-
-      if(sixteenBitForMemory){
-         memory[stoi(cleanVariable(str1))] = binToDec(decToBin((unsigned short)result).substr(8,16));
-         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin((unsigned short)result).substr(0,8));
-         setVariableValue(getVariableNameFromVariableAddress(str1),result);
-      }else{
-         memory[stoi(cleanVariable(str1))] = result;
-         setVariableValue(getVariableNameFromVariableAddress(str1),result);        
-      }  
+      setMemoryForDbAndDw(stoi(cleanVariable(str1)),(unsigned short)result,type);
+      setVariableValue(getVariableNameFromVariableAddress(str1),result);
    }else if(option == "add"){
       if(sixteenBitForMemory){
          unsigned short temp = 0;
@@ -925,8 +924,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
          temp += memory[stoi(cleanVariable(str1))+1];
          checkAndSetFlags(temp,result,16,"add");
          temp += result;
-         memory[stoi(cleanVariable(str1))] = binToDec(decToBin(temp).substr(8,16));
-         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin(temp).substr(0,8));
+         setMemoryForDbAndDw(address,temp,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),temp);   
       }else{
          checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"add");
@@ -940,8 +938,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
          temp += memory[stoi(cleanVariable(str1))+1];
          checkAndSetFlags(temp,result,16,"sub");
          temp -= result;
-         memory[stoi(cleanVariable(str1))] = binToDec(decToBin(temp).substr(8,16));
-         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin(temp).substr(0,8));
+         setMemoryForDbAndDw(address,temp,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),temp); 
       }else{
          checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"sub");
@@ -956,8 +953,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
          temp += memory[stoi(cleanVariable(str1))+1];
          checkAndSetFlags(temp,result,16,"or");
          temp |= result;
-         memory[stoi(cleanVariable(str1))] = binToDec(decToBin(temp).substr(8,16));
-         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin(temp).substr(0,8));
+         setMemoryForDbAndDw(address,temp,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),temp); 
       }else{
          checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"or");
@@ -972,8 +968,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
          temp += memory[stoi(cleanVariable(str1))+1];
          checkAndSetFlags(temp,result,16,"and");
          temp &= result;
-         memory[stoi(cleanVariable(str1))] = binToDec(decToBin(temp).substr(8,16));
-         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin(temp).substr(0,8));
+         setMemoryForDbAndDw(address,temp,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),temp); 
       }else{
          checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"and");
@@ -987,8 +982,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
          temp = ~temp;
-         memory[stoi(cleanVariable(str1))] = binToDec(decToBin(temp).substr(8,16));
-         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin(temp).substr(0,8));
+         setMemoryForDbAndDw(address,temp,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),temp); 
       }else{
          memory[stoi(cleanVariable(str1))] = ~memory[stoi(cleanVariable(str1))];
@@ -1002,8 +996,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
          temp += memory[stoi(cleanVariable(str1))+1];
          checkAndSetFlags(temp,result,16,"xor");
          temp ^= result;
-         memory[stoi(cleanVariable(str1))] = binToDec(decToBin(temp).substr(8,16));
-         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin(temp).substr(0,8));
+         setMemoryForDbAndDw(address,temp,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),temp); 
       }else{
          checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"xor");
@@ -1021,8 +1014,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
             cf = temp & 1;
             temp >>= 1;
          }
-         memory[stoi(cleanVariable(str1))] = binToDec(decToBin(temp).substr(8,16));
-         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin(temp).substr(0,8));
+         setMemoryForDbAndDw(address,temp,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),temp);
       }else{
          checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"shr");
@@ -1043,8 +1035,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
             cf = decToBin(temp).at(0)-'0';
             temp <<= 1;
          }
-         memory[stoi(cleanVariable(str1))] = binToDec(decToBin(temp).substr(8,16));
-         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin(temp).substr(0,8));
+         setMemoryForDbAndDw(address,temp,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),temp);
       }else{
          checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"shl");
@@ -1066,8 +1057,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
             temp >>= 1;
             temp |= shiftedValueOfCf;
          } 
-         memory[stoi(cleanVariable(str1))] = binToDec(decToBin(temp).substr(8,16));
-         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin(temp).substr(0,8));         
+         setMemoryForDbAndDw(address,temp,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),temp);
       }else{
          checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"rcr");
@@ -1092,8 +1082,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
             temp <<= 1;
             temp |= oldValueOfCf;
          }         
-         memory[stoi(cleanVariable(str1))] = binToDec(decToBin(temp).substr(8,16));
-         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin(temp).substr(0,8));         
+         setMemoryForDbAndDw(address,temp,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),temp);
       }else{
          checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"rcl");
@@ -1124,6 +1113,16 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
 }
 
 
+// Change The Value Of Memory
+template <class typeOfVariableValue> 
+void setMemoryForDbAndDw(int address,typeOfVariableValue variableValue,string typeOfVariable) {
+   if(typeOfVariable == "dw"){
+      memory[address] = binToDec(decToBin(variableValue).substr(8,16));
+      memory[address+1] = binToDec(decToBin(variableValue).substr(0,8));
+   }else{
+      memory[address] = variableValue;
+   }
+}
 
 // FLAGS
 

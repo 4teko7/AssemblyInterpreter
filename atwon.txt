@@ -3,9 +3,9 @@ code segment
    mov bp,bx
    sub bp,1 
    add bx,2h 
-   mov w[bx],206fh 
+   mov w [bx],206fh 
    add bx,2h 
-   mov w[bx],6f77h 
+   mov w.[bx],6f77h 
    add bx,2h 
    mov w[bx],6c72h
    add bx,1
