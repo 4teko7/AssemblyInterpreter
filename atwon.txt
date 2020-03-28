@@ -1,75 +1,28 @@
-mov al,00001000b
-jmp start
-start:
-    add al,1d
-    mov bl,00001010b
-    cmp al,bl
-    jc start
-    cmp al,00000100b
-    mov ax,0000000001000000b
-    mov bx,16
-    mul bx
-
-alti db 00000001b
-shr alti,2
-mov alti,10000000b
-shl alti,2
-mov alti,10000001b
-rcl alti,2
-mov alti,10000001b
-rcr alti,2
-or alti,00001000b
-and alti,00000000b
-not alti
-mov bx,1
-mov ax,1101000000001001b
-rcl ax,bx
-rcl ax,5
-shl ax,3
-shr ax,8
-mov ax,0000000000001000b
-
-mul bx
-mov al,00000001b
-sub al,01000010b
-mov al,00000001b
-mov bl,00000010b
-or al,bl
-and al,bl
-not al
-shl al,3
-shr al,3
-xor al,bl
-
-mov bx,0000000000000001b
-sub bx,0000000000000010b
-mov cx,0
-mul cx
-add ax,bx
-sub yedi,6
-mov [0096],offset yedi
-mov [0096],[0097h]
-mov al,[0096h]
-mov bl,[yedi]
-mov cl,[0096h]
-mov dl,offset yedi
-label:
-mov ah,02h
-mov dl,'9'
-int 21h
-int 20h
-int 20h
-int 20h
-
-
-yedi db 7
-sekiz db 8
-a db 'a'
-on db 10
-doksanYedi db 97
-altiw dw '6'
-yediw dw 7
-sekizw dw 8
-aw dw 'a'
-onw dbw 10
-doksanYediw dw 97
+code segment
+   mov  ax,8001h
+   mov  bx,8001h
+   rcl  ax,1h
+   jc   label1
+   add  ax,1
+label1: 
+   rcr  bx,2h
+   shl  bx,1h 
+   shr  bx,1h
+   push ax
+   push bx
+   pop  cx
+   mov  ah,2h 
+   mov  dl,cl
+   add  dl,'0' 
+   int  21h 
+   mov  cx,sp
+   mov  dl,cl
+   and  dl,0fh 
+   add  dl,'a' 
+   int  21h 
+   mov  dl,al
+   and  dl,0fh 
+   add  dl,'a' 
+   int  21h 
+   int  20h    
+code ends

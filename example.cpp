@@ -59,6 +59,7 @@ unsigned short *pax = &ax ;
 unsigned short *pbx = &bx ; 
 unsigned short *pcx = &cx ; 
 unsigned short *pdx = &dx ; 
+unsigned short *psp = &sp; 
 
 
 // note that x86 uses little endian, that is, least significat byte is stored in lowest byte 
@@ -340,7 +341,6 @@ void determineLabelVariables(){
 
 // CONSTRUCT MEMORY
 void constructMemory(){
-   cout << sizeof(memory)/sizeof(*memory) << endl;
    vector<pair<string,string>>::iterator it;
    int address = 0;
    int whereAddressLeft = numberOfLinesWithoutVariables * 6;
@@ -391,7 +391,6 @@ void processLabels(int index){
    for (it = labels.at(i).content.begin(); it != labels.at(i).content.end() && !canJump; it++) {
    string temp,firstWord,secondWord,thirdWord,forthWord,fifthWord,sixthWord,seventhWord = "";
 
-      print_16bitregs();
       line = (*it);
       istringstream linestream(line);
       getLinestreamLine(linestream,firstWord,' ');
@@ -421,7 +420,10 @@ void processLabels(int index){
          }
          
       }
+      // print_16bitregs();
+
    }
+
    }
 
    if(index2 != -1) processLabels(index2);
@@ -484,6 +486,7 @@ void processOneWordInstructions(string& option, string& str1){
          cout << (char)(*pal);
       }else if(decToHex(*pah) == "2"){
          cout << (char)(*pdl) ;
+         *pal = *pdl;
       }else if(decToHex(*pah) == "8"){
          char temp;
          cin >> temp;
@@ -512,11 +515,12 @@ void processOneWordInstructions(string& option, string& str1){
       *pax *= (unsigned short)determineValueOfInstruction(str1);
    }else if(option == "push"){
       unsigned short deger = (unsigned short)determineValueOfInstruction(str1);
-      sp = sp << 8;
-      sp = sp | deger;
-      print_16bitregs() ; 
-
+      sp -= 2;
+      memory[sp] = binToDec(decToBin(deger).substr(8,16));
+      memory[sp+1] = binToDec(decToBin(deger).substr(0,8));
+      // print_16bitregs() ; 
    }else if(option == "pop"){
+      // Determine Reg te [0090h] gibi sayilarida belirle, pop [0090h] diyebilir.
       unsigned short *pmx = nullptr; 
       unsigned char *pmhl = nullptr;
       bool isVariableFound1 = false;
@@ -524,15 +528,12 @@ void processOneWordInstructions(string& option, string& str1){
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
       determineReg(&pmx,&pmhl,str1,isVariableFound1,isVariableFound2,it,it2);
-      unsigned short temp;
-      temp = sp >> 8;
-      temp = temp << 8;
-      if(pmx != nullptr) *pmx = (sp - temp);
-      else if(pmhl != nullptr) *pmhl = (sp - temp);
-      else if(isVariableFound1) (*it).value = (sp - temp);
-      else if(isVariableFound2) (*it2).value = (sp - temp);
-      sp = sp >> 8;
-      print_16bitregs() ; 
+      if(pmx != nullptr) *pmx = memory[sp]+memory[sp+1]*pow(2,8);
+      else if(pmhl != nullptr) *pmhl = memory[sp];
+      else if(isVariableFound1) (*it).value = memory[sp] + memory[sp+1] *pow(2,8);
+      else if(isVariableFound2) (*it2).value = memory[sp] + memory[sp+1] * pow(2,8);
+      sp += 2;
+      // print_16bitregs() ; 
 
       
    }
@@ -566,6 +567,8 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
       *pmhl = pdh;
    }else if(resultReg == "dl"){
       *pmhl = pdl;
+   }else if(resultReg == "sp"){
+      *pmx = psp;
    }
 
 
@@ -761,30 +764,31 @@ void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>
       for (int i = 0; i < resultOfInstruction; i++) {
          cf = **firstReg & 1;
          **firstReg >>= 1;
-         printBits(ax);
+         // printBits(ax);
       }
    }else if(option == "shl"){
       checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"shl");
       for (int i = 0; i < resultOfInstruction; i++) {
          cf = decToBin(**firstReg).at(0)-'0';
          **firstReg <<= 1;
-         printBits(ax);
+         // printBits(ax);
       }
    }else if(option == "rcr"){
       checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"rcr");
       for (int i = 0; i < resultOfInstruction; i++) {
-         cf = **firstReg & 1;
          unsigned short temp = cf << sizeof(**firstReg) * 8 - 1;
+         cf = **firstReg & 1;
          **firstReg >>= 1;
          **firstReg |= temp;
       }
    }else if(option == "rcl"){
       checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"rcl");
       for (int i = 0; i < resultOfInstruction; i++) {
+         bool temp = cf;
          cf = decToBin(**firstReg).at(0)-'0';
          **firstReg <<= 1;
-         **firstReg |= cf;
-         printBits(ax);
+         **firstReg |= temp;
+         // printBits(ax);
       }
    }else if(option == "cmp"){
       checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"sub");
@@ -839,8 +843,8 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
    }else if(option == "rcr"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"rcr");
       for (int i = 0; i < resultOfInstruction; i++) {
-         cf = (*firstIt).value & 1;
          unsigned short temp = cf << sizeof((*firstIt).value) * 8 - 1;
+         cf = (*firstIt).value & 1;
          (*firstIt).value >>= 1;
          (*firstIt).value |= temp;
       }
@@ -848,10 +852,11 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
    }else if(option == "rcl"){
       checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"rcl");
       for (int i = 0; i < resultOfInstruction; i++) {
+         bool temp = cf;
          cf = decToBin((*firstIt).value).at(0)-'0';
          (*firstIt).value <<= 1;
-         (*firstIt).value |= cf;
-         printBits(ax);
+         (*firstIt).value |= temp;
+         // printBits(ax);
       }
       memory[(*firstIt).address] = (*firstIt).value;
    }else if(option == "cmp"){
@@ -909,8 +914,8 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
    }else if(option == "rcr"){
       checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"rcr");
       for (int i = 0; i < result; i++) {
+         unsigned short temp = cf << sizeof(memory[stoi(cleanVariable(str1))]) * 8 - 1;
          cf = memory[stoi(cleanVariable(str1))] & 1;
-         unsigned short temp = cf << sizeof(memory[stoi(cleanVariable(str1))]) * 8;
          memory[stoi(cleanVariable(str1))] >>= 1;
          memory[stoi(cleanVariable(str1))] |= temp;
       } 
@@ -918,9 +923,10 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
    }else if(option == "rcl"){
       checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"rcl");
       for (int i = 0; i < result; i++) {
-            cf = decToBin(memory[stoi(cleanVariable(str1))]).at(0)-'0';
-            memory[stoi(cleanVariable(str1))] <<= 1;
-            memory[stoi(cleanVariable(str1))] |= cf;
+         bool temp = cf;
+         cf = decToBin(memory[stoi(cleanVariable(str1))]).at(0)-'0';
+         memory[stoi(cleanVariable(str1))] <<= 1;
+         memory[stoi(cleanVariable(str1))] |= temp;
          }
       setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
    }else if(option == "cmp"){
@@ -1108,6 +1114,66 @@ void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,stri
          unsigned char number1Binary = binToDec(decToBin(num1SixteenBit).substr(12,16));
          unsigned char number2Binary = binToDec(decToBin(num2SixteenBit).substr(12,16));
          if(number1Binary & number2Binary > 15) af = 1;
+      }
+   }else if(option == "shl"){
+      if(bit == 8){
+         eightBitResult = num1EightBit << num2EightBit;
+         if(decToBin(eightBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         // else of = 0;
+         if(eightBitResult == 0) zf = 1;
+         else zf = 0;
+         
+         // unsigned char number1Binary = binToDec(decToBin(num1EightBit).substr(4,8));
+         // unsigned char number2Binary = binToDec(decToBin(num2EightBit).substr(4,8));
+         // if(number1Binary < number2Binary) af = 1;
+         // else af = 0;
+         // if(countSpecificCharacter(decToBin(eightBitResult),'1') % 2 == 0) pf = 1;
+         // else pf = 0;
+      }else if(bit == 16){
+         sixteenBitResult = num1SixteenBit << num2SixteenBit;
+         if(decToBin(sixteenBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         // else of = 0;
+         if(sixteenBitResult == 0) zf = 1;
+         else zf = 0;
+         // unsigned char number1Binary = binToDec(decToBin(num1SixteenBit).substr(12,16));
+         // unsigned char number2Binary = binToDec(decToBin(num2SixteenBit).substr(12,16));
+         // if(number1Binary < number2Binary) af = 1;
+      }
+   }else if(option == "shr"){
+      if(bit == 8){
+         eightBitResult = num1EightBit >> num2EightBit;
+         if(decToBin(eightBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         // else of = 0;
+         if(eightBitResult == 0) zf = 1;
+         else zf = 0;
+         
+         // unsigned char number1Binary = binToDec(decToBin(num1EightBit).substr(4,8));
+         // unsigned char number2Binary = binToDec(decToBin(num2EightBit).substr(4,8));
+         // if(number1Binary < number2Binary) af = 1;
+         // else af = 0;
+         // if(countSpecificCharacter(decToBin(eightBitResult),'1') % 2 == 0) pf = 1;
+         // else pf = 0;
+      }else if(bit == 16){
+         sixteenBitResult = num1SixteenBit >> num2SixteenBit;
+         if(decToBin(sixteenBitResult).at(0) == '1') sf = 1;
+         else sf = 0;
+         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         // else of = 0;
+         if(sixteenBitResult == 0) zf = 1;
+         else zf = 0;
+         // unsigned char number1Binary = binToDec(decToBin(num1SixteenBit).substr(12,16));
+         // unsigned char number2Binary = binToDec(decToBin(num2SixteenBit).substr(12,16));
+         // if(number1Binary < number2Binary) af = 1;
       }
    }
 
