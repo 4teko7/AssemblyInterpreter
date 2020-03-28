@@ -109,7 +109,8 @@ bool canJump = false;
 // Pair<Pair<nameOfVariable,Pair<typeOfVariable,balueOfVariable>>,addressOfVariable>
 // nameOfVariable - typeOfVariable
 vector<pair<string,string>> queueOfVariables;
-
+bool memoryWFound = false;
+bool memoryBFound = false;
 
 // FUNCTIONS
 
@@ -420,7 +421,7 @@ void processLabels(int index){
          }
          
       }
-      // print_16bitregs();
+      print_16bitregs();
 
    }
 
@@ -459,11 +460,29 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
 
       bool isVariableFound1 = false;
       bool isVariableFound2 = false;
+      memoryWFound = false;
+      memoryBFound = false;
       bool isFirstVariableFound1 = false;
       bool isFirstVariableFound2 = false;
       unsigned char eightBit = 0;
    // For Register Names
+      if(str1.find("[bx]") != string::npos){
+         if(str1.find("w[bx]") != string::npos || str1.find("w.[bx]") != string::npos) memoryWFound = true;
+         if(str1.find("b[bx]") != string::npos || str1.find("b.[bx]") != string::npos) memoryBFound = true;
+         std::stringstream sstm;
+         sstm << "[" << (*pbx) << "h]";
+         str1 = sstm.str();
 
+
+      }
+      if(str2.find("[bx]") != string::npos){
+         if(str2.find("w[bx]") != string::npos || str2.find("w.[bx]") != string::npos) memoryWFound = true;
+         if(str2.find("b[bx]") != string::npos || str2.find("b.[bx]") != string::npos) memoryBFound = true;
+         std::stringstream sstm;
+         sstm << "[" << (*pbx) << "h]";
+         str2 = sstm.str();
+
+      }
       determineReg(&pmx,&pmhl,str1,isFirstVariableFound1,isFirstVariableFound2,firstIt,firstIt2);
       if(str3 != "offset")
       determineReg(&pnx,&pnhl,str2,isVariableFound1,isVariableFound2,it,it2);
@@ -542,7 +561,7 @@ void processOneWordInstructions(string& option, string& str1){
 
 // DETERMINE : pmx,pmhl,it,it2,isVariableFound1,isVariableFound2
 void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2) {
-   string resultReg = cleanVariable(reg);
+   string resultReg = reg;
    if(resultReg == "ax"){
       *pmx = pax;
    }else if(resultReg == "bx"){
@@ -569,8 +588,8 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
       *pmhl = pdl;
    }else if(resultReg == "sp"){
       *pmx = psp;
-   }
-
+   }else{
+      resultReg = cleanVariable(reg);
 
       for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
          if(resultReg == (*it).name){
@@ -588,6 +607,9 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
          }
       }
       }
+   }
+
+   
 
 
 
@@ -596,8 +618,7 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
 // DETERMINE VALUE OF INSTRUCTION
 // ax,al,msg,1,1d,1h,'1',"1",[msg],[ax],[0090h],[0090]
 int determineValueOfInstruction(string reg) {
-   string resultReg= "";
-   resultReg = cleanVariable(reg);
+   string resultReg = reg;
    int result = 0;
    std::vector<dbVariable>::iterator it;
    std::vector<dwVariable>::iterator it2;
@@ -630,6 +651,8 @@ int determineValueOfInstruction(string reg) {
    }else if(resultReg == "dl"){
       result = *pdl;
    }else{
+      resultReg = cleanVariable(reg);
+
       for (it = dbVariables.begin(); it != dbVariables.end(); it++)
       {
          if(resultReg == (*it).name){
@@ -711,7 +734,7 @@ void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVa
             else moveValueToVariable(firstIt2,pnx,it,it2,str2,str3,option);
          }else if(str1.at(0) == '[' && str1.at(str1.length()-1) == ']' && isDigitDecimal(str1,1)){
             instructionForBrakets(str1,str2,str3,option);
-      }  
+         }  
 }
 
 
@@ -871,8 +894,15 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
    result = (str3 == "offset") ? getVariableAddress(str2) : determineValueOfInstruction(str2);
 
    if(option == "mov"){
-      memory[stoi(cleanVariable(str1))] = result;
-      setVariableValue(getVariableNameFromVariableAddress(str1),result);
+
+      if(memoryWFound){
+         memory[stoi(cleanVariable(str1))] = binToDec(decToBin((unsigned short)result).substr(8,16));
+         memory[stoi(cleanVariable(str1))+1] = binToDec(decToBin((unsigned short)result).substr(0,8));
+         setVariableValue(getVariableNameFromVariableAddress(str1),result);
+      }else{
+         memory[stoi(cleanVariable(str1))] = result;
+         setVariableValue(getVariableNameFromVariableAddress(str1),result);        
+      }  
    }else if(option == "add"){
       checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,sizeof(memory[stoi(cleanVariable(str1))])*8,"add");
       memory[stoi(cleanVariable(str1))] += result;
@@ -1176,8 +1206,6 @@ void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,stri
          // if(number1Binary < number2Binary) af = 1;
       }
    }
-
-
 
 }
 
