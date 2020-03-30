@@ -25,7 +25,7 @@ unsigned short bp = 0 ;
 
 unsigned short PC = 0 ; 
 // unsigned short sp = 0 ;
-unsigned short sp = (2<<15) - 2;
+unsigned short sp = (2<<15)-2;
 
 
 bool zf = 0;              // zero flag
@@ -199,7 +199,7 @@ template <class typeOfVariableValue> void setMemoryForDbAndDw(int address,typeOf
 int main() {
 
     // Open the input and output files, check for failures
-    ifstream inFile("atwon.txt");
+    ifstream inFile("test5");
     if (!inFile) { // operator! is synonymous to .fail(), checking if there was a failure
         cerr << "There was a problem opening \"" << "atwon.txt" << "\" as input file" << endl;
         return 1;
@@ -435,6 +435,14 @@ void processLabels(int index){
          
       }
       // print_16bitregs();
+      // cout << "AX: " << endl; 
+      // printBits(ax);
+      // cout << "BX: " << endl;
+      // printBits(bx);
+      // cout << "CX: "  << endl;
+      // printBits(cx);
+      // cout << "DX: " << endl;
+      // printBits(dx);
 
    }
 
@@ -552,13 +560,14 @@ void processOneWordInstructions(string& option, string& str1){
       // setEightAndSixteenBitBoolValues(pmx,pnx,pmhl,pnhl,str1,str2);
    }else if(option == "push"){
       unsigned short deger = (unsigned short)determineValueOfInstruction(str1);
+      memory[sp] = binToDec(decToBin(deger).substr(8,16));
+      memory[sp+1] = binToDec(decToBin(deger).substr(0,8));
       sp -= 2;
-      memory[sp] = binToDec(decToBin(deger).substr(0,8));
-      memory[sp+1] = binToDec(decToBin(deger).substr(8,16));
       // print_16bitregs() ; 
    }else if(option == "pop"){
       // Determine Reg te [0090h] gibi sayilarida belirle, pop [0090h] diyebilir.
-      if(sp >= 65536) return;
+      if(sp >= 65534) return;
+      sp += 2;
       unsigned short *pmx = nullptr; 
       unsigned char *pmhl = nullptr;
       bool isVariableFound1 = false;
@@ -566,8 +575,8 @@ void processOneWordInstructions(string& option, string& str1){
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
       determineReg(&pmx,&pmhl,str1,isVariableFound1,isVariableFound2,it,it2);
-      if(pmx != nullptr) *pmx = memory[sp]*pow(2,8)+memory[sp+1];
-      else if(pmhl != nullptr) *pmhl = memory[sp];
+      if(pmx != nullptr) *pmx = memory[sp]+memory[sp+1]*pow(2,8);
+      else if(pmhl != nullptr) *pmhl = memory[sp];                                                                          
       else if(isVariableFound1) {
          (*it).value = memory[sp];
          memory[(*it).address] = (*it).value;
@@ -583,10 +592,9 @@ void processOneWordInstructions(string& option, string& str1){
          result = (type == "dw") ? memory[sp] + memory[sp+1] : memory[sp];
          setMemoryForDbAndDw(address,(unsigned short)result,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),result);
-      
       }
-
-      sp += 2;
+      memory[sp] = 0;
+      memory[sp+1] = 0;
       // print_16bitregs() ; 
 
       
@@ -916,9 +924,9 @@ int getOtherValue(string str1) {
       
    }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
       if(isItSixteenBitValue(str1)){
-        result = memory[stoi(cleanVariable(str1.substr(str1.find_first_of('['),str1.length())))] + memory[stoi(cleanVariable(str1.substr(str1.find_first_of('['),str1.length())))+1];
+        result = memory[stoi(cleanVariable(str1))] + memory[stoi(cleanVariable(str1))+1];
       }else{
-         result = memory[stoi(cleanVariable(str1.substr(str1.find_first_of('['),str1.length())))];
+         result = memory[stoi(cleanVariable(str1))];
       }
    }else{
       
@@ -1654,11 +1662,16 @@ string cleanVariable(string variable) {
    if(variable.find('[') != string::npos && variable.find(']') != string::npos){
       variable = variable.substr(variable.find_first_of('[')+1,variable.length());
       variable = variable.substr(0,variable.find_last_of(']'));
-      if((variable.at(variable.length()-1) == 'h' || variable.at(variable.length()-1) == 'd') && variable.at(0) >= 48 && variable.at(0) <= 57) {
+      if((variable.at(variable.length()-1) == 'h' || variable.at(variable.length()-1) == 'd' || variable.at(variable.length()-1) == 'b') && variable.at(0) >= 48 && variable.at(0) <= 57) {
          if(variable.at(variable.length()-1) == 'h'){
             variable = variable.substr(0,variable.length()-1);
             stringstream ssm;
             ssm << hexToDec(variable);
+            variable = ssm.str(); 
+         }else if(variable.at(variable.length()-1) == 'b'){
+            variable = variable.substr(0,variable.length()-1);
+            stringstream ssm;
+            ssm << binToDec(variable);
             variable = ssm.str(); 
          }else{
             variable = variable.substr(0,variable.length()-1);

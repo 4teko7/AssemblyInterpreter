@@ -1,0 +1,26 @@
+code segment
+   mov bx,offset dat2 
+   mov bp,bx
+   sub bp,1 
+   add bx,2h 
+   mov w[bx],206fh 
+   add bx,2h 
+   mov w[bx],6f77h 
+   add bx,2h 
+   mov w[bx],6c72h
+   add bx,1
+   mov b[bx],64h 
+   mov cx,0ah  
+   mov ah,02h
+   sub bp,1 
+   mov bx,bp 
+more:
+   mov dl,[bx]
+   int 21h 
+   add bx,1 
+   sub cx,1
+   jnz more
+   int 20h 
+dat1 dw 6568h
+dat2 dw 6c6ch    
+code ends
