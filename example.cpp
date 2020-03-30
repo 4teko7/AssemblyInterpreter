@@ -25,7 +25,7 @@ unsigned short bp = 0 ;
 
 unsigned short PC = 0 ; 
 // unsigned short sp = 0 ;
-unsigned short sp = (2<<15)-2 ;
+unsigned short sp = (2<<15) - 2;
 
 
 bool zf = 0;              // zero flag
@@ -521,26 +521,44 @@ void processOneWordInstructions(string& option, string& str1){
       print_16bitregs();
       exit(0);
    }else if(option == "div"){
-      *pax /= (unsigned short)determineValueOfInstruction(str1);
+      if(isItSixteenBitValue(str1)){
+         unsigned short quotient = *pax / (unsigned short)determineValueOfInstruction(str1);
+         unsigned short remainder = *pax % (unsigned short)determineValueOfInstruction(str1);
+         *pdx = remainder;
+         *pax = quotient;
+         checkAndSetFlags(*pdx,remainder,16,option);
+         checkAndSetFlags(*pax,quotient,16,option);
+      }else{
+         unsigned char quotient = *pax / (unsigned short)determineValueOfInstruction(str1);
+         unsigned char remainder = *pax % (unsigned short)determineValueOfInstruction(str1);
+         *pah = remainder;
+         *pal = quotient;
+         checkAndSetFlags(*pah,remainder,8,option);
+         checkAndSetFlags(*pal,quotient,8,option);
+
+      }
    }else if(option == "mul"){
       if(isItSixteenBitValue(str1)){
-         checkAndSetFlags(*pax,determineValueOfInstruction(str1),16,option);
          int result = *pax * (unsigned short)determineValueOfInstruction(str1);
          *pdx = binToDec(decToBin(result).substr(0,16));
          *pax = binToDec(decToBin(result).substr(16,32));
+         checkAndSetFlags(*pdx,binToDec(decToBin(result).substr(0,16)),16,option);
+         checkAndSetFlags(*pax,binToDec(decToBin(result).substr(16,32)),16,option);
       }else{
-         checkAndSetFlags(*pal,determineValueOfInstruction(str1),8,option);
          *pax = *pal * determineValueOfInstruction(str1);
+         checkAndSetFlags(*pax,*pal * determineValueOfInstruction(str1),16,option);
+
       }
       // setEightAndSixteenBitBoolValues(pmx,pnx,pmhl,pnhl,str1,str2);
    }else if(option == "push"){
       unsigned short deger = (unsigned short)determineValueOfInstruction(str1);
       sp -= 2;
-      memory[sp] = binToDec(decToBin(deger).substr(8,16));
-      memory[sp+1] = binToDec(decToBin(deger).substr(0,8));
+      memory[sp] = binToDec(decToBin(deger).substr(0,8));
+      memory[sp+1] = binToDec(decToBin(deger).substr(8,16));
       // print_16bitregs() ; 
    }else if(option == "pop"){
       // Determine Reg te [0090h] gibi sayilarida belirle, pop [0090h] diyebilir.
+      if(sp >= 65536) return;
       unsigned short *pmx = nullptr; 
       unsigned char *pmhl = nullptr;
       bool isVariableFound1 = false;
@@ -548,10 +566,26 @@ void processOneWordInstructions(string& option, string& str1){
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
       determineReg(&pmx,&pmhl,str1,isVariableFound1,isVariableFound2,it,it2);
-      if(pmx != nullptr) *pmx = memory[sp]+memory[sp+1]*pow(2,8);
+      if(pmx != nullptr) *pmx = memory[sp]*pow(2,8)+memory[sp+1];
       else if(pmhl != nullptr) *pmhl = memory[sp];
-      else if(isVariableFound1) (*it).value = memory[sp] + memory[sp+1] *pow(2,8);
-      else if(isVariableFound2) (*it2).value = memory[sp] + memory[sp+1] * pow(2,8);
+      else if(isVariableFound1) {
+         (*it).value = memory[sp];
+         memory[(*it).address] = (*it).value;
+      }
+      else if(isVariableFound2) {
+         (*it2).value = memory[sp] + memory[sp+1] * pow(2,8);
+         memory[(*it2).address] = memory[sp];
+         memory[(*it2).address + 1] = memory[sp + 1];
+      }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
+         int result = 0;
+         int address = stoi(cleanVariable(str1));
+         string type = isItSixteenBitValue(str1) ? "dw" : "db";
+         result = (type == "dw") ? memory[sp] + memory[sp+1] : memory[sp];
+         setMemoryForDbAndDw(address,(unsigned short)result,type);
+         setVariableValue(getVariableNameFromVariableAddress(str1),result);
+      
+      }
+
       sp += 2;
       // print_16bitregs() ; 
 
@@ -564,40 +598,40 @@ void strToMemoryAddress(string& str1,string& str2) {
    if(str1.find("[bx]") != string::npos || str1.find("[si]") != string::npos || str1.find("[di]") != string::npos || str1.find("[bp]") != string::npos){
       std::stringstream sstm;
       if(str1.find("w[bx]") != string::npos || str1.find("w.[bx]") != string::npos || str1.find("w [bx]") != string::npos)
-         sstm << "w[" << (*pbx) << "h]";
+         sstm << "w[" << (*pbx) << "d]";
       else if(str1.find("b[bx]") != string::npos || str1.find("b.[bx]") != string::npos || str1.find("b [bx]") != string::npos)
-         sstm << "b[" << (*pbx) << "h]";
+         sstm << "b[" << (*pbx) << "d]";
       else if((str1.find("[bx]") && isItSixteenBitValue(str2)))
-         sstm << "w[" << (*pbx) << "h]";
+         sstm << "w[" << (*pbx) << "d]";
       else if((str1.find("[bx]") && !isItSixteenBitValue(str2)))
-         sstm << "b[" << (*pbx) << "h]";
+         sstm << "b[" << (*pbx) << "d]";
 
       else if(str1.find("w[si]") != string::npos || str1.find("w.[si]") != string::npos || str1.find("w [si]") != string::npos)
-         sstm << "w[" << (*psi) << "h]";
+         sstm << "w[" << (*psi) << "d]";
       else if(str1.find("b[si]") != string::npos || str1.find("b.[si]") != string::npos || str1.find("b [si]") != string::npos)
-         sstm << "b[" << (*psi) << "h]";
+         sstm << "b[" << (*psi) << "d]";
       else if((str1.find("[si]") && isItSixteenBitValue(str2)))
-         sstm << "w[" << (*psi) << "h]";
+         sstm << "w[" << (*psi) << "d]";
       else if((str1.find("[si]") && !isItSixteenBitValue(str2)))
-         sstm << "b[" << (*psi) << "h]";
+         sstm << "b[" << (*psi) << "d]";
       
       else if(str1.find("w[di]") != string::npos || str1.find("w.[di]") != string::npos || str1.find("w [di]") != string::npos)
-         sstm << "w[" << (*pdi) << "h]";
+         sstm << "w[" << (*pdi) << "d]";
       else if(str1.find("b[di]") != string::npos || str1.find("b.[di]") != string::npos || str1.find("b [di]") != string::npos)
-         sstm << "b[" << (*pdi) << "h]";
+         sstm << "b[" << (*pdi) << "d]";
       else if((str1.find("[di]") && isItSixteenBitValue(str2)))
-         sstm << "w[" << (*pdi) << "h]";
+         sstm << "w[" << (*pdi) << "d]";
       else if((str1.find("[di]") && !isItSixteenBitValue(str2)))
-         sstm << "b[" << (*pdi) << "h]";
+         sstm << "b[" << (*pdi) << "d]";
 
       else if(str1.find("w[bp]") != string::npos || str1.find("w.[bp]") != string::npos || str1.find("w [bp]") != string::npos)
-         sstm << "w[" << (*pbp) << "h]";
+         sstm << "w[" << (*pbp) << "d]";
       else if(str1.find("b[bp]") != string::npos || str1.find("b.[bp]") != string::npos || str1.find("b [bp]") != string::npos)
-         sstm << "b[" << (*pbp) << "h]";
+         sstm << "b[" << (*pbp) << "d]";
       else if((str1.find("[bp]") && isItSixteenBitValue(str2)))
-         sstm << "w[" << (*pbp) << "h]";
+         sstm << "w[" << (*pbp) << "d]";
       else if((str1.find("[bp]") && !isItSixteenBitValue(str2)))
-         sstm << "b[" << (*pbp) << "h]";   
+         sstm << "b[" << (*pbp) << "d]";   
 
       str1 = sstm.str();
       
@@ -611,40 +645,40 @@ void strToMemoryAddress(string& str1,string& str2) {
    if(str2.find("[bx]") != string::npos || str2.find("[si]") != string::npos || str2.find("[di]") != string::npos || str2.find("[bp]") != string::npos){
       std::stringstream sstm2;
       if(str2.find("w[bx]") != string::npos || str2.find("w.[bx]") != string::npos || str2.find("w [bx]") != string::npos)
-         sstm2 << "w[" << (*pbx) << "h]";
+         sstm2 << "w[" << (*pbx) << "d]";
       else if(str2.find("b[bx]") != string::npos || str2.find("b.[bx]") != string::npos || str2.find("b [bx]") != string::npos)
-         sstm2 << "b[" << (*pbx) << "h]";
+         sstm2 << "b[" << (*pbx) << "d]";
       else if((str2.find("[bx]") != string::npos && isItSixteenBitValue(str1)))
-         sstm2 << "w[" << (*pbx) << "h]";
+         sstm2 << "w[" << (*pbx) << "d]";
       else if((str2.find("[bx]") != string::npos && !isItSixteenBitValue(str1)))
-         sstm2 << "b[" << (*pbx) << "h]";
+         sstm2 << "b[" << (*pbx) << "d]";
 
       else if(str2.find("w[si]") != string::npos || str2.find("w.[si]") != string::npos || str2.find("w [si]") != string::npos)
-         sstm2 << "w[" << (*psi) << "h]";
+         sstm2 << "w[" << (*psi) << "d]";
       else if(str2.find("b[si]") != string::npos || str2.find("b.[si]") != string::npos || str2.find("b [si]") != string::npos)
-         sstm2 << "b[" << (*psi) << "h]";
+         sstm2 << "b[" << (*psi) << "d]";
       else if((str2.find("[si]") != string::npos && isItSixteenBitValue(str1)))
-         sstm2 << "w[" << (*psi) << "h]";
+         sstm2 << "w[" << (*psi) << "d]";
       else if((str2.find("[si]") != string::npos && !isItSixteenBitValue(str1)))
-         sstm2 << "b[" << (*psi) << "h]";
+         sstm2 << "b[" << (*psi) << "d]";
 
       else if(str2.find("w[di]") != string::npos || str2.find("w.[di]") != string::npos || str2.find("w [di]") != string::npos)
-         sstm2 << "w[" << (*pdi) << "h]";
+         sstm2 << "w[" << (*pdi) << "d]";
       else if(str2.find("b[di]") != string::npos || str2.find("b.[di]") != string::npos || str2.find("b [di]") != string::npos)
-         sstm2 << "b[" << (*pdi) << "h]";
+         sstm2 << "b[" << (*pdi) << "d]";
       else if((str2.find("[di]") != string::npos && isItSixteenBitValue(str1)))
-         sstm2 << "w[" << (*pdi) << "h]";
+         sstm2 << "w[" << (*pdi) << "d]";
       else if((str2.find("[di]") != string::npos && !isItSixteenBitValue(str1)))
-         sstm2 << "b[" << (*pdi) << "h]";
+         sstm2 << "b[" << (*pdi) << "d]";
       
       else if(str2.find("w[bp]") != string::npos || str2.find("w.[bp]") != string::npos || str2.find("w [bp]") != string::npos)
-         sstm2 << "w[" << (*pbp) << "h]";
+         sstm2 << "w[" << (*pbp) << "d]";
       else if(str2.find("b[bp]") != string::npos || str2.find("b.[bp]") != string::npos || str2.find("b [bp]") != string::npos)
-         sstm2 << "b[" << (*pbp) << "h]";
+         sstm2 << "b[" << (*pbp) << "d]";
       else if((str2.find("[bp]") != string::npos && isItSixteenBitValue(str1)))
-         sstm2 << "w[" << (*pbp) << "h]";
+         sstm2 << "w[" << (*pbp) << "d]";
       else if((str2.find("[bp]") != string::npos && !isItSixteenBitValue(str1)))
-         sstm2 << "b[" << (*pbp) << "h]";   
+         sstm2 << "b[" << (*pbp) << "d]";   
 
       str2 = sstm2.str();
    }else if(str2.find('[') != string::npos && str2.find(']') != string::npos && isDigitDecimal(str2,str2.find_first_of('[')+1) && str2.at(0) != 'w' && str2.at(0) != 'b'){
@@ -1353,16 +1387,29 @@ void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,stri
       }
    }else if(option == "mul"){
       if(bit == 8){
-         eightBitResult = num1EightBit * number2;
-         if(num1EightBit * number2 > 255) cf = 1;
+         if(number2 > 255) cf = 1;
          else cf = 0;
          // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
          // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
          // else of = 0;
 
       }else if(bit == 16){
-         sixteenBitResult = num1SixteenBit * number2;
-         if(num1SixteenBit * number2 > 65535) cf = 1;
+         if(number2 > 65535) cf = 1;
+         else cf = 0;
+         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         // else of = 0;
+      }
+   }else if(option == "div"){
+      if(bit == 8){
+         if(number2 > 255) cf = 1;
+         else cf = 0;
+         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
+         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
+         // else of = 0;
+
+      }else if(bit == 16){
+         if(number2 > 65535) cf = 1;
          else cf = 0;
          // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
          // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
@@ -1608,9 +1655,11 @@ string cleanVariable(string variable) {
       variable = variable.substr(variable.find_first_of('[')+1,variable.length());
       variable = variable.substr(0,variable.find_last_of(']'));
       if((variable.at(variable.length()-1) == 'h' || variable.at(variable.length()-1) == 'd') && variable.at(0) >= 48 && variable.at(0) <= 57) {
-         if(variable.at(variable.length()-1) == 'd'){
+         if(variable.at(variable.length()-1) == 'h'){
             variable = variable.substr(0,variable.length()-1);
-            variable = decToHex(stoi(variable));
+            stringstream ssm;
+            ssm << hexToDec(variable);
+            variable = ssm.str(); 
          }else{
             variable = variable.substr(0,variable.length()-1);
          }
