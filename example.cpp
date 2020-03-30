@@ -1470,35 +1470,8 @@ void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,stri
          else af = 0;
       }
    }else if(option == "mul"){
-      if(bit == 8){
-         if(number2 > 255) cf = 1;
+         if(65535 > (number1 * number2) && (number1 * number2) > 255) cf = 1;
          else cf = 0;
-         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
-         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
-         // else of = 0;
-
-      }else if(bit == 16){
-         if(number2 > 65535) cf = 1;
-         else cf = 0;
-         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
-         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
-         // else of = 0;
-      }
-   }else if(option == "div"){
-      if(bit == 8){
-         if(number2 > 255) cf = 1;
-         else cf = 0;
-         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
-         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
-         // else of = 0;
-
-      }else if(bit == 16){
-         if(number2 > 65535) cf = 1;
-         else cf = 0;
-         // if(!isFirstDigitOne1 && !isFirstDigitOne2 && sf == 1) of = 1;
-         // else if(isFirstDigitOne1 && isFirstDigitOne2 && sf == 0) of = 1;
-         // else of = 0;
-      }
    }else if(option == "inc"){
       if(bit == 8){
          eightBitResult = num1EightBit + 1;
