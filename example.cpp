@@ -113,22 +113,9 @@ bool canJump = false;
 // Pair<Pair<nameOfVariable,Pair<typeOfVariable,balueOfVariable>>,addressOfVariable>
 // nameOfVariable - typeOfVariable
 vector<pair<string,string>> queueOfVariables;
-bool eightBitForMemory1 = false;
-bool sixteenBitForMemory1 = false;
-bool sixteenBitForMemory2 = false;
-bool eightBitForMemory2 = false;
-bool isVariableFound1 = false;
-bool isVariableFound2 = false;
-bool isFirstVariableFound1 = false;
-bool isFirstVariableFound2 = false;
-unsigned char *pmhl = nullptr;
-unsigned char *pnhl = nullptr;
-unsigned short *pmx = nullptr; 
-unsigned short *pnx = nullptr;      
-std::vector<dbVariable>::iterator it;
-std::vector<dwVariable>::iterator it2;
-std::vector<dbVariable>::iterator firstIt;
-std::vector<dwVariable>::iterator firstIt2;
+// bool eightBitForMemory1 = false;
+// bool sixteenBitForMemory1 = false;
+
 // FUNCTIONS
 
 // **********************************************
@@ -180,8 +167,8 @@ void constructMemory();
 void processLabels(int index);
 void processTwoWordsInstructions(string& option, string& str1,string& str2,string& str3);
 void processOneWordInstructions(string& option, string& str1);
-
-
+void strToMemoryAddress(string& str1,string& str2);
+bool isItSixteenBitValue(string str1);
 
 
 
@@ -209,7 +196,6 @@ void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
 void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl);
 void comparison(unsigned short firstValue,unsigned short secondValue);
 template <class typeOfVariableValue> void setMemoryForDbAndDw(int address,typeOfVariableValue variableValue,string typeOfVariable);
-void setEightAndSixteenBitBoolValues(string& str1,string& str2,string isOffset);
 int main() {
 
     // Open the input and output files, check for failures
@@ -424,11 +410,11 @@ void processLabels(int index){
       if(firstWord == "mov" || firstWord == "add" || firstWord == "sub" || firstWord == "xor" || firstWord == "or" || firstWord == "and" || firstWord == "not" || firstWord == "shr" || firstWord == "shl" || firstWord == "rcl" || firstWord == "rcr" || firstWord == "cmp"){
          if(line.find("offset") != string::npos) thirdWordsComma(linestream,secondWord,thirdWord,forthWord);
          else twoWordsComma(linestream,secondWord,thirdWord);
-         setEightAndSixteenBitBoolValues(secondWord,thirdWord,forthWord);
+         strToMemoryAddress(secondWord,thirdWord);
          processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
       }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop"){
          getLinestreamLine(linestream,secondWord,' ');
-         setEightAndSixteenBitBoolValues(secondWord,thirdWord,forthWord);
+         strToMemoryAddress(secondWord,thirdWord);
          processOneWordInstructions(firstWord,secondWord);
       }else if(firstWord == "nop"){
          
@@ -476,71 +462,31 @@ bool checkForJumpCondition(string jmpType) {
 }
 // PROCESS TWO WORDS INSTRUCTIONS
 void processTwoWordsInstructions(string& option, string& str1,string& str2,string& str3){
+      std::vector<dbVariable>::iterator it;
+      std::vector<dwVariable>::iterator it2;
+      std::vector<dbVariable>::iterator firstIt;
+      std::vector<dwVariable>::iterator firstIt2;
+      unsigned char *pmhl = nullptr;
+      unsigned char *pnhl = nullptr;
+      unsigned short *pmx = nullptr; 
+      unsigned short *pnx = nullptr;   
+      bool isVariableFound1 = false;
+      bool isVariableFound2 = false;
+      bool isFirstVariableFound1 = false;
+      bool isFirstVariableFound2 = false;
+      // sixteenBitForMemory1 = false;
+      // eightBitForMemory1 = false;
+
+
+      determineReg(&pmx,&pmhl,str1,isFirstVariableFound1,isFirstVariableFound2,firstIt,firstIt2);
+      if(str3 != "offset")
+      determineReg(&pnx,&pnhl,str2,isVariableFound1,isVariableFound2,it,it2);
+
 
       if(option == "mov" || option == "add" || option == "sub" || option == "or" || option == "and" || option == "xor" || option == "not" || option == "rcl" || option == "rcr" || option == "shr" || option == "shl" || option == "shl" || option == "cmp"){
          instructionOptions(pmx,pnx,it,it2,firstIt,firstIt2,isFirstVariableFound1,isFirstVariableFound2,str1,str2,str3,pmhl,pnhl,option);
       }
 
-
-}
-void setEightAndSixteenBitBoolValues(string& str1,string& str2,string isOffset) {
-      std::vector<dbVariable>::iterator it1;
-      std::vector<dwVariable>::iterator it22;
-      std::vector<dbVariable>::iterator firstIt1;
-      std::vector<dwVariable>::iterator firstIt22;
-      it = it1;
-      it2 = it22;
-      firstIt = firstIt1;
-      firstIt2 = firstIt22;
-
-      pmhl = nullptr;
-      pnhl = nullptr;
-      pmx = nullptr; 
-      pnx = nullptr;
-      isVariableFound2 = false; 
-      isVariableFound1 = false;
-      sixteenBitForMemory1 = false;
-      eightBitForMemory1 = false;
-      isFirstVariableFound1 = false;
-      isFirstVariableFound2 = false;
-
-      if(str1.find("[bx]") != string::npos || str1.find("[si]") != string::npos || str1.find("[di]") != string::npos || str1.find("[bp]") != string::npos){
-         if(str1.find("w[bx]") != string::npos || str1.find("w.[bx]") != string::npos || str1.find("w [bx]") != string::npos || str1.find("w[si]") != string::npos || str1.find("w.[si]") != string::npos || str1.find("w [si]") != string::npos || str1.find("w[di]") != string::npos || str1.find("w.[di]") != string::npos || str1.find("w [di]") != string::npos || str1.find("w[bp]") != string::npos || str1.find("w.[bp]") != string::npos || str1.find("w [bp]") != string::npos) sixteenBitForMemory1 = true;
-         if(str1.find("b[bx]") != string::npos || str1.find("b.[bx]") != string::npos || str1.find("b [bx]") != string::npos || str1.find("b[si]") != string::npos || str1.find("b.[si]") != string::npos || str1.find("b [si]") != string::npos || str1.find("b[di]") != string::npos || str1.find("b.[di]") != string::npos || str1.find("b [di]") != string::npos || str1.find("b[bp]") != string::npos || str1.find("b.[bp]") != string::npos || str1.find("b [bp]") != string::npos) eightBitForMemory1 = true;
-         std::stringstream sstm;
-         if(str1.find("[bx]") != string::npos) sstm << "[" << (*pbx) << "h]";
-         if(str1.find("[si]") != string::npos) sstm << "[" << (*psi) << "h]";
-         if(str1.find("[di]") != string::npos) sstm << "[" << (*pdi) << "h]";
-         if(str1.find("[bp]") != string::npos) sstm << "[" << (*pbp) << "h]";
-         str1 = sstm.str();
-      }
-      if(str2.find("[bx]") != string::npos || str2.find("[si]") != string::npos || str2.find("[di]") != string::npos || str2.find("[bp]") != string::npos){
-         if(str2.find("w[bx]") != string::npos || str2.find("w.[bx]") != string::npos || str2.find("w [bx]") != string::npos || str2.find("w[si]") != string::npos || str2.find("w.[si]") != string::npos || str2.find("w [si]") != string::npos || str2.find("w[di]") != string::npos || str2.find("w.[di]") != string::npos || str2.find("w [di]") != string::npos || str2.find("w[bp]") != string::npos || str2.find("w.[bp]") != string::npos || str2.find("w [bp]") != string::npos) sixteenBitForMemory1 = true;
-         if(str2.find("b[bx]") != string::npos || str2.find("b.[bx]") != string::npos || str2.find("b [bx]") != string::npos || str2.find("b[si]") != string::npos || str2.find("b.[si]") != string::npos || str2.find("b [si]") != string::npos || str2.find("b[di]") != string::npos || str2.find("b.[di]") != string::npos || str2.find("b [di]") != string::npos || str2.find("b[bp]") != string::npos || str2.find("b.[bp]") != string::npos || str2.find("b [bp]") != string::npos) eightBitForMemory1 = true;
-         std::stringstream sstm;
-         if(str2.find("[bx]") != string::npos) sstm << "[" << (*pbx) << "h]";
-         if(str2.find("[si]") != string::npos) sstm << "[" << (*psi) << "h]";
-         if(str2.find("[di]") != string::npos) sstm << "[" << (*pdi) << "h]";
-         if(str2.find("[bp]") != string::npos) sstm << "[" << (*pbp) << "h]";
-         str2 = sstm.str();
-      }
-
-      determineReg(&pmx,&pmhl,str1,isFirstVariableFound1,isFirstVariableFound2,firstIt,firstIt2);
-      if(isOffset != "offset")
-      determineReg(&pnx,&pnhl,str2,isVariableFound1,isVariableFound2,it,it2);
-
-      if(pmx || pnx) sixteenBitForMemory1 = true;
-      if(pmhl || pnhl) eightBitForMemory1 = true;
-      if(isFirstVariableFound1 || isVariableFound1) eightBitForMemory1 = true;
-      if(isFirstVariableFound2 || isVariableFound2) sixteenBitForMemory1 = true;
-      if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1) && str1.at(0) == 'w') sixteenBitForMemory1 = true;
-      if(str2.find('[') != string::npos && str2.find(']') != string::npos && isDigitDecimal(str2,str2.find_first_of('[')+1) && str2.at(0) == 'w') sixteenBitForMemory1 = true;
-      if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1) && str1.at(0) == 'b') eightBitForMemory1 = true;
-      if(str2.find('[') != string::npos && str2.find(']') != string::npos && isDigitDecimal(str2,str2.find_first_of('[')+1) && str2.at(0) == 'b') eightBitForMemory1 = true;
-      if(sixteenBitForMemory1 && eightBitForMemory1) {
-         cout << "16 Bit and 8 Bit Operands !!!" << endl;
-         exit(1);
-      }
 }
 
 // PROCESS ONE WORD INSTRUCTIONS
@@ -570,14 +516,14 @@ void processOneWordInstructions(string& option, string& str1){
       }else if(decToHex(*pah) == "4C"){
          exit(*pal);
       }
-      // cout.flush();
+      cout.flush();
    }else if(option == "int" && str1 == "20h"){
       print_16bitregs();
       exit(0);
    }else if(option == "div"){
       *pax /= (unsigned short)determineValueOfInstruction(str1);
    }else if(option == "mul"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          checkAndSetFlags(*pax,determineValueOfInstruction(str1),16,option);
          int result = *pax * (unsigned short)determineValueOfInstruction(str1);
          *pdx = binToDec(decToBin(result).substr(0,16));
@@ -614,6 +560,160 @@ void processOneWordInstructions(string& option, string& str1){
 
 }
 
+void strToMemoryAddress(string& str1,string& str2) {
+   if(str1.find("[bx]") != string::npos || str1.find("[si]") != string::npos || str1.find("[di]") != string::npos || str1.find("[bp]") != string::npos){
+      std::stringstream sstm;
+      if(str1.find("w[bx]") != string::npos || str1.find("w.[bx]") != string::npos || str1.find("w [bx]") != string::npos)
+         sstm << "w[" << (*pbx) << "h]";
+      else if(str1.find("b[bx]") != string::npos || str1.find("b.[bx]") != string::npos || str1.find("b [bx]") != string::npos)
+         sstm << "b[" << (*pbx) << "h]";
+      else if((str1.find("[bx]") && isItSixteenBitValue(str2)))
+         sstm << "w[" << (*pbx) << "h]";
+      else if((str1.find("[bx]") && !isItSixteenBitValue(str2)))
+         sstm << "b[" << (*pbx) << "h]";
+
+      else if(str1.find("w[si]") != string::npos || str1.find("w.[si]") != string::npos || str1.find("w [si]") != string::npos)
+         sstm << "w[" << (*psi) << "h]";
+      else if(str1.find("b[si]") != string::npos || str1.find("b.[si]") != string::npos || str1.find("b [si]") != string::npos)
+         sstm << "b[" << (*psi) << "h]";
+      else if((str1.find("[si]") && isItSixteenBitValue(str2)))
+         sstm << "w[" << (*psi) << "h]";
+      else if((str1.find("[si]") && !isItSixteenBitValue(str2)))
+         sstm << "b[" << (*psi) << "h]";
+      
+      else if(str1.find("w[di]") != string::npos || str1.find("w.[di]") != string::npos || str1.find("w [di]") != string::npos)
+         sstm << "w[" << (*pdi) << "h]";
+      else if(str1.find("b[di]") != string::npos || str1.find("b.[di]") != string::npos || str1.find("b [di]") != string::npos)
+         sstm << "b[" << (*pdi) << "h]";
+      else if((str1.find("[di]") && isItSixteenBitValue(str2)))
+         sstm << "w[" << (*pdi) << "h]";
+      else if((str1.find("[di]") && !isItSixteenBitValue(str2)))
+         sstm << "b[" << (*pdi) << "h]";
+
+      else if(str1.find("w[bp]") != string::npos || str1.find("w.[bp]") != string::npos || str1.find("w [bp]") != string::npos)
+         sstm << "w[" << (*pbp) << "h]";
+      else if(str1.find("b[bp]") != string::npos || str1.find("b.[bp]") != string::npos || str1.find("b [bp]") != string::npos)
+         sstm << "b[" << (*pbp) << "h]";
+      else if((str1.find("[bp]") && isItSixteenBitValue(str2)))
+         sstm << "w[" << (*pbp) << "h]";
+      else if((str1.find("[bp]") && !isItSixteenBitValue(str2)))
+         sstm << "b[" << (*pbp) << "h]";   
+
+      str1 = sstm.str();
+      
+   }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1) && str1.at(0) != 'w' && str1.at(0) != 'b'){
+      if(isItSixteenBitValue(str2))
+         str1 = "w" + str1;
+      else
+         str1 = "b" + str1;
+    }
+
+   if(str2.find("[bx]") != string::npos || str2.find("[si]") != string::npos || str2.find("[di]") != string::npos || str2.find("[bp]") != string::npos){
+      std::stringstream sstm2;
+      if(str2.find("w[bx]") != string::npos || str2.find("w.[bx]") != string::npos || str2.find("w [bx]") != string::npos)
+         sstm2 << "w[" << (*pbx) << "h]";
+      else if(str2.find("b[bx]") != string::npos || str2.find("b.[bx]") != string::npos || str2.find("b [bx]") != string::npos)
+         sstm2 << "b[" << (*pbx) << "h]";
+      else if((str2.find("[bx]") != string::npos && isItSixteenBitValue(str1)))
+         sstm2 << "w[" << (*pbx) << "h]";
+      else if((str2.find("[bx]") != string::npos && !isItSixteenBitValue(str1)))
+         sstm2 << "b[" << (*pbx) << "h]";
+
+      else if(str2.find("w[si]") != string::npos || str2.find("w.[si]") != string::npos || str2.find("w [si]") != string::npos)
+         sstm2 << "w[" << (*psi) << "h]";
+      else if(str2.find("b[si]") != string::npos || str2.find("b.[si]") != string::npos || str2.find("b [si]") != string::npos)
+         sstm2 << "b[" << (*psi) << "h]";
+      else if((str2.find("[si]") != string::npos && isItSixteenBitValue(str1)))
+         sstm2 << "w[" << (*psi) << "h]";
+      else if((str2.find("[si]") != string::npos && !isItSixteenBitValue(str1)))
+         sstm2 << "b[" << (*psi) << "h]";
+
+      else if(str2.find("w[di]") != string::npos || str2.find("w.[di]") != string::npos || str2.find("w [di]") != string::npos)
+         sstm2 << "w[" << (*pdi) << "h]";
+      else if(str2.find("b[di]") != string::npos || str2.find("b.[di]") != string::npos || str2.find("b [di]") != string::npos)
+         sstm2 << "b[" << (*pdi) << "h]";
+      else if((str2.find("[di]") != string::npos && isItSixteenBitValue(str1)))
+         sstm2 << "w[" << (*pdi) << "h]";
+      else if((str2.find("[di]") != string::npos && !isItSixteenBitValue(str1)))
+         sstm2 << "b[" << (*pdi) << "h]";
+      
+      else if(str2.find("w[bp]") != string::npos || str2.find("w.[bp]") != string::npos || str2.find("w [bp]") != string::npos)
+         sstm2 << "w[" << (*pbp) << "h]";
+      else if(str2.find("b[bp]") != string::npos || str2.find("b.[bp]") != string::npos || str2.find("b [bp]") != string::npos)
+         sstm2 << "b[" << (*pbp) << "h]";
+      else if((str2.find("[bp]") != string::npos && isItSixteenBitValue(str1)))
+         sstm2 << "w[" << (*pbp) << "h]";
+      else if((str2.find("[bp]") != string::npos && !isItSixteenBitValue(str1)))
+         sstm2 << "b[" << (*pbp) << "h]";   
+
+      str2 = sstm2.str();
+   }else if(str2.find('[') != string::npos && str2.find(']') != string::npos && isDigitDecimal(str2,str2.find_first_of('[')+1) && str2.at(0) != 'w' && str2.at(0) != 'b'){
+      if(isItSixteenBitValue(str1))
+         str2 = "w" + str2;
+      else
+         str2 = "b" + str2;
+    }
+
+   
+
+
+}
+
+bool isItSixteenBitValue(string str1) {
+      std::vector<dbVariable>::iterator it;
+      std::vector<dwVariable>::iterator it2;
+      std::vector<dbVariable>::iterator firstIt;
+      std::vector<dwVariable>::iterator firstIt2;
+      unsigned char *pmhl = nullptr;
+      unsigned char *pnhl = nullptr;
+      unsigned short *pmx = nullptr; 
+      unsigned short *pnx = nullptr;   
+      bool isVariableFound1 = false;
+      bool isVariableFound2 = false;
+
+      determineReg(&pmx,&pmhl,str1,isVariableFound1,isVariableFound2,firstIt,firstIt2);
+
+      if(pmx) return true;
+      else if(pmhl) return false;
+      else if(isVariableFound1) return false;
+      else if(isVariableFound2) {
+         if(str1.at(0) == 'w') return true;
+         else if(str1.at(0) == 'b') return false;
+      }else if((48 <= str1.at(0) && str1.at(0) <= 57)){
+            if(str1.at(str1.length()-1) == 'd'){
+               str1 = str1.substr(0,str1.length()-1);
+               if(stoi(str1) > 255) return true;
+               else return false;
+            }else if((str1.at(str1.length()-1) == 'h')){
+               str1 = str1.substr(0,str1.length()-1);
+               if(hexToDec(str1) > 255) return true;
+               else return false;
+            }else if((str1.at(str1.length()-1) == 'b')){
+               str1 = str1.substr(0,str1.length()-1);
+               if(binToDec(str1) > 255) return true;
+               else return false;
+            }else if((48 <= str1.at(str1.length() -1) && str1.at(str1.length() - 1) <= 57)){
+               if(stoi(str1) > 255) return true;
+               else return false;
+            }else{
+               return false;
+            }
+            
+         }
+
+      else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1) && str1.at(0) == 'w') return true;
+      else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1) && str1.at(0) == 'b') return false;
+      else if(str1.find('\'') != string::npos && (str1.find_first_of('\'') != str1.find_last_of('\''))){
+         if(str1.at(0) == 'w') return true;
+         else if(str1.at(0) == 'b') return false;
+      }
+      else if(((str1.find('"') != string::npos) && (str1.find_first_of('"') != str1.find_last_of('"'))) || ((str1.find('\"') != string::npos) && (str1.find_first_of('\"') != str1.find_last_of('\"')))){
+         if(str1.at(0) == 'w') return true;
+         else if(str1.at(0) == 'b') return false;
+      }else return false;
+
+
+}
 // DETERMINE : pmx,pmhl,it,it2,isVariableFound1,isVariableFound2
 void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2) {
    string resultReg = reg;
@@ -655,7 +755,6 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
 
       for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
          if(resultReg.find((*it).name) != string::npos){
-            eightBitForMemory1 = true;
             isVariableFound1 = true;
             break;
          }
@@ -665,8 +764,6 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
       for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++)
       {
          if(resultReg.find((*it2).name) != string::npos){
-            if(resultReg.at(0) == 'w') sixteenBitForMemory1 = true;
-            else if(resultReg.at(0) == 'b') eightBitForMemory1 = true;
             isVariableFound2 = true;
             break;
          }
@@ -730,7 +827,6 @@ int determineValueOfInstruction(string reg) {
       for (it = dbVariables.begin(); it != dbVariables.end(); it++)
       {
          if(resultReg.find((*it).name) != string::npos){
-            eightBitForMemory1 = true;
             isVariableFound1 = true;
             break;
          }
@@ -740,8 +836,6 @@ int determineValueOfInstruction(string reg) {
       for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++)
       {
          if(resultReg.find((*it2).name) != string::npos){
-            if(resultReg.at(0) == 'w') sixteenBitForMemory1 = true;
-            else if(resultReg.at(0) == 'b') eightBitForMemory1 = true;
             isVariableFound2 = true;
             break;
          }
@@ -751,7 +845,7 @@ int determineValueOfInstruction(string reg) {
     if(isVariableFound1){
          result = ((*it).value); 
       }else if(isVariableFound2){
-         if(eightBitForMemory1){
+         if(!isItSixteenBitValue(reg)){
             result = binToDec(decToBin((*it2).value).substr(8,16));
          }else{
             result = (*it2).value; 
@@ -780,22 +874,24 @@ int getOtherValue(string str1) {
       }else if((str1.at(str1.length()-1) == 'b')){
          str1 = str1.substr(0,str1.length()-1);
          result = binToDec(str1);
-      }else{
+      }else if((48 <= str1.at(str1.length() -1) && str1.at(str1.length() - 1) <= 57)){
          result = stoi(str1);
+      }else{
+         cout << "CAN NOT BE PARSED !!! " << endl;
       }
       
    }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
         result = memory[stoi(cleanVariable(str1.substr(str1.find_first_of('['),str1.length())))] + memory[stoi(cleanVariable(str1.substr(str1.find_first_of('['),str1.length())))+1];
       }else{
          result = memory[stoi(cleanVariable(str1.substr(str1.find_first_of('['),str1.length())))];
       }
    }else{
       
-      if(str1.at(0) == '\''){
-         character = str1.at(1);
-      }else if(str1.at(0) == '"' || str1.at(0) == '\\' || str1.at(0) == '\"'){
-         character = str1.at(1);
+      if(str1.find('\'') != string::npos && (str1.find_first_of('\'') != str1.find_last_of('\''))){
+         character = str1.at(str1.find_first_of('\'')+1);
+      }else if((str1.find('"') != string::npos || str1.find('\"') != string::npos) && ((str1.find_first_of('\"') != str1.find_last_of('\"')) || (str1.find_first_of('"') != str1.find_last_of('"')))){
+         character = (str1.find_first_of('\"') != string::npos) ? str1.at(str1.find_first_of('\"')+1) : str1.at(str1.find_first_of('"')+1);
       }else{
          character = str1.at(0);
       }
@@ -959,15 +1055,14 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
 void instructionForBrakets(string str1,string str2,string str3,string option) {
    int result = 0;
    result = (str3 == "offset") ? getVariableAddress(str2) : determineValueOfInstruction(str2);
-   int bitNumber = sixteenBitForMemory1 ? 16 : 8;
    int address = stoi(cleanVariable(str1));
    unsigned short temp = 0;
-   string type = sixteenBitForMemory1 ? "dw" : "db";
+   string type = isItSixteenBitValue(str1) ? "dw" : "db";
    if(option == "mov"){
       setMemoryForDbAndDw(stoi(cleanVariable(str1)),(unsigned short)result,type);
       setVariableValue(getVariableNameFromVariableAddress(str1),result);
    }else if(option == "add"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
@@ -981,7 +1076,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
          setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
       }
    }else if(option == "sub"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
@@ -996,7 +1091,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       }
       
    }else if(option == "or"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
@@ -1011,7 +1106,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       }
 
    }else if(option == "and"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
@@ -1026,7 +1121,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       }
 
    }else if(option == "not"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
@@ -1039,7 +1134,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       }
 
    }else if(option == "xor"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
@@ -1054,7 +1149,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       }
 
    }else if(option == "shr"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          unsigned short temp=0;
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
@@ -1075,7 +1170,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
 
       }
    }else if(option == "shl"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          unsigned short temp=0;
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
@@ -1095,7 +1190,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
          setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
       }
    }else if(option == "rcr"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          unsigned short temp=0;
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
@@ -1120,7 +1215,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       }
 
    }else if(option == "rcl"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          unsigned short temp=0;
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
@@ -1148,7 +1243,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
 
 
    }else if(option == "cmp"){
-      if(sixteenBitForMemory1){
+      if(isItSixteenBitValue(str1)){
          unsigned short temp=0;
          temp += memory[stoi(cleanVariable(str1))];
          temp += memory[stoi(cleanVariable(str1))+1];
@@ -1507,12 +1602,20 @@ string getVariableNameFromVariableAddress(string address){
 
 
 
-//REMOVE [,],h  FROM WORDS 
+//REMOVE [,],h  FROM WORDS , THIS METHOD WILL RETURN A HEX VALUE
 string cleanVariable(string variable) {
    if(variable.find('[') != string::npos && variable.find(']') != string::npos){
       variable = variable.substr(variable.find_first_of('[')+1,variable.length());
       variable = variable.substr(0,variable.find_last_of(']'));
-      if((variable.at(variable.length()-1) == 'h' || variable.at(variable.length()-1) == 'd') && variable.at(0) >= 48 && variable.at(0) <= 57) variable = variable.substr(0,variable.length()-1);
+      if((variable.at(variable.length()-1) == 'h' || variable.at(variable.length()-1) == 'd') && variable.at(0) >= 48 && variable.at(0) <= 57) {
+         if(variable.at(variable.length()-1) == 'd'){
+            variable = variable.substr(0,variable.length()-1);
+            variable = decToHex(stoi(variable));
+         }else{
+            variable = variable.substr(0,variable.length()-1);
+         }
+      }
+      
    } 
    return variable;
 }
