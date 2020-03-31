@@ -196,10 +196,11 @@ void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
 void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl);
 void comparison(unsigned short firstValue,unsigned short secondValue);
 template <class typeOfVariableValue> void setMemoryForDbAndDw(int address,typeOfVariableValue variableValue,string typeOfVariable);
+void exitFromExecution(string paramaterError);
 int main() {
 
     // Open the input and output files, check for failures
-    ifstream inFile("test5");
+    ifstream inFile("reverse");
     if (!inFile) { // operator! is synonymous to .fail(), checking if there was a failure
         cerr << "There was a problem opening \"" << "atwon.txt" << "\" as input file" << endl;
         return 1;
@@ -501,15 +502,22 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
 void processOneWordInstructions(string& option, string& str1){
    if(option == "int" && str1 == "21h"){
       if(*pah == 1){
+         cin.clear();
          char temp;
-         cin >> temp;
-         *pal = (unsigned char)temp;
+         cin;
+         temp = cin.get();
+         if(temp ==  '\n') {
+            *pal = 13;
+         }else{
+            *pal = (unsigned char)temp;
+         }
       }else if(decToHex(*pah) == "2"){
          cout << (char)(*pdl) ;
          *pal = *pdl;
       }else if(decToHex(*pah) == "8"){
          char temp;
          cin >> temp;
+
          *pal = (unsigned char)temp;
       }else if(decToHex(*pah) == "9"){
          if(*pdx == 255){
@@ -774,6 +782,53 @@ void strToMemoryAddress(string& str1,string& str2) {
 
 }
 
+void checkForCompatibility(string str1,string str2){
+      std::vector<dbVariable>::iterator it;
+      std::vector<dwVariable>::iterator it2;
+      std::vector<dbVariable>::iterator firstIt;
+      std::vector<dwVariable>::iterator firstIt2;
+      unsigned char *pmhl = nullptr;
+      unsigned char *pnhl = nullptr;
+      unsigned short *pmx = nullptr; 
+      unsigned short *pnx = nullptr;   
+      bool isVariableFound1 = false;
+      bool isVariableFound2 = false;
+      bool isFirstVariableFound1 = false;
+      bool isFirstVariableFound2 = false;
+
+      determineReg(&pnx,&pnhl,str2,isVariableFound1,isVariableFound2,it,it2);
+      determineReg(&pmx,&pmhl,str1,isVariableFound1,isVariableFound2,firstIt,firstIt2);
+
+         if(pmx != nullptr){
+            if(pnhl != nullptr) exitFromExecution("16 Bit - 8 Bit Error");
+         }else if(pmhl != nullptr){
+            if(pnx != nullptr) exitFromExecution("8 Bit - 16 Bit Error");
+         }else if(isFirstVariableFound1){
+            if(isVariableFound1){
+               if((str1.at(0) == 'b' || str1.at(0) == 'w') && (str2.at(0) == 'b' && str2.at(0) == 'w')) return;
+               else exitFromExecution("YOU SHOULD SPECIFY TYPE OF VARIABLE");
+            }else if(isVariableFound2){
+               if((str1.at(0) == 'b' || str1.at(0) == 'w') && (str2.at(0) == 'b' && str2.at(0) == 'w')) return;
+               else exitFromExecution("YOU SHOULD SPECIFY TYPE OF VARIABLE");
+            }else if(pnx != nullptr){
+               
+            }else if(pnhl != nullptr){
+
+            }
+         }else if(isFirstVariableFound2){
+         }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
+         }
+
+
+
+
+}
+
+void exitFromExecution(string paramaterError) {
+   cout << paramaterError << endl;
+   exit(1);
+}
+
 bool isItSixteenBitValue(string str1) {
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
@@ -790,10 +845,13 @@ bool isItSixteenBitValue(string str1) {
 
       if(pmx) return true;
       else if(pmhl) return false;
-      else if(isVariableFound1) return false;
-      else if(isVariableFound2) {
+      else if(isVariableFound1) {
          if(str1.at(0) == 'w') return true;
-         else if(str1.at(0) == 'b') return false;
+         else return false;
+      }
+      else if(isVariableFound2) {
+         if(str1.at(0) == 'b') return false;
+         else return true;
       }else if((48 <= str1.at(0) && str1.at(0) <= 57)){
             if(str1.at(str1.length()-1) == 'd'){
                str1 = str1.substr(0,str1.length()-1);
@@ -820,11 +878,11 @@ bool isItSixteenBitValue(string str1) {
       else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1) && str1.at(0) == 'b') return false;
       else if(str1.find('\'') != string::npos && (str1.find_first_of('\'') != str1.find_last_of('\''))){
          if(str1.at(0) == 'w') return true;
-         else if(str1.at(0) == 'b') return false;
+         else return false;
       }
       else if(((str1.find('"') != string::npos) && (str1.find_first_of('"') != str1.find_last_of('"'))) || ((str1.find('\"') != string::npos) && (str1.find_first_of('\"') != str1.find_last_of('\"')))){
          if(str1.at(0) == 'w') return true;
-         else if(str1.at(0) == 'b') return false;
+         else return false;
       }else return false;
    // ADD w'a',w"a" ETC. HERE.
 
@@ -1017,7 +1075,6 @@ int getOtherValue(string str1) {
 
 //     M O V E    F U N C T I O N
 void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl,string option) {
-         char character;
          if(pmx != nullptr){
             moveValueToReg(&pmx,pnx,it,it2,str2,str3,option);
          }else if(pmhl != nullptr){
