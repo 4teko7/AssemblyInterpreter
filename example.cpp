@@ -201,7 +201,7 @@ void checkForCompatibility(string str1,string str2);
 int main() {
 
     // Open the input and output files, check for failures
-    ifstream inFile("tests/code1.txt");
+    ifstream inFile("tests/code10.txt");
     if (!inFile) { // operator! is synonymous to .fail(), checking if there was a failure
         cerr << "There was a problem opening \"" << "atwon.txt" << "\" as input file" << endl;
         return 1;
@@ -314,7 +314,7 @@ void getLabelContent(Label& label,ifstream& inFile,string& line){
    if(!lineWithoutLabel) getLineTrimLower(inFile,firstLine);
    while(!checkSemiColon(firstLine)){
       if(firstLine.find("code segment") != string::npos || firstLine.find("code ends") != string::npos) break;
-      if((firstLine.find("db") != string::npos || firstLine.find("dw") != string::npos) && firstLine.find(",") == string::npos) {
+      if((firstLine.find("db") != string::npos || firstLine.find("dw") != string::npos)) {
          if(firstLine.substr(0,2) == "db" || firstLine.substr(0,2) == "dw"){
             string temp = label.name + " " + firstLine;
             createDbOrDw(temp);
@@ -325,6 +325,7 @@ void getLabelContent(Label& label,ifstream& inFile,string& line){
          getLineTrimLower(inFile,firstLine);
          continue;
       }
+      if(firstLine.find("int 20h") != string::npos) isint20h = true;
       if(firstLine != "\r" && firstLine != "") label.content.push_back(firstLine);
       if(inFile.eof()) break;
       getLineTrimLower(inFile,firstLine);
@@ -413,7 +414,7 @@ void processLabels(int index){
          if(line.find("offset") != string::npos) thirdWordsComma(linestream,secondWord,thirdWord,forthWord);
          else twoWordsComma(linestream,secondWord,thirdWord);
          strToMemoryAddress(secondWord,thirdWord);
-         checkForCompatibility(secondWord,thirdWord);
+         if(forthWord != "offset") checkForCompatibility(secondWord,thirdWord);
          processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
       }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop" || firstWord == "inc" || firstWord == "dec"){
          getLinestreamLine(linestream,secondWord,' ');
@@ -537,7 +538,7 @@ void processOneWordInstructions(string& option, string& str1){
       }
       cout.flush();
    }else if(option == "int" && str1 == "20h"){
-      print_16bitregs();
+      // print_16bitregs();
       exit(0);
    }else if(option == "div"){
       if(isItSixteenBitValue(str1)){
@@ -2063,7 +2064,36 @@ int countSpecificCharacter(string str, char character) {
 
 // LOWER CASE
 void toLower(string& firstLine){
-   transform(firstLine.begin(), firstLine.end(), firstLine.begin(), ::tolower);
+   if(isint20h){
+      istringstream linestream(firstLine);
+      string a,b,c = "";
+      getLinestreamLine(linestream,a,' ');
+      getLinestreamLine(linestream,b,' ');
+      getLinestreamLine(linestream,c,' ');
+      transform(b.begin(), b.end(), b.begin(), ::tolower);
+      if(b == "db" || b == "dw"){
+         transform(a.begin(), a.end(), a.begin(), ::tolower);
+         firstLine = a + " " + b + " " + c;
+      }
+
+   }else if((firstLine.find('\'') != string::npos && firstLine.find_first_of('\'') != firstLine.find_last_of('\'')) || (firstLine.find('"') != string::npos && firstLine.find_first_of('"') != firstLine.find_last_of('"'))){
+      istringstream linestream(firstLine);
+      string a,b,c = "";
+      getLinestreamLine(linestream,a,' ');
+      getLinestreamLine(linestream,b,' ');
+      getLinestreamLine(linestream,c,' ');
+      if((b.find('\'') != string::npos && b.find_first_of('\'') != b.find_last_of('\'')) || (b.find('"') != string::npos && b.find_first_of('"') != b.find_last_of('"'))){
+         transform(a.begin(), a.end(), a.begin(), ::tolower);
+         transform(c.begin(), c.end(), c.begin(), ::tolower);
+         firstLine = a + " " + b + " " + c;
+      }else if((c.find('\'') != string::npos && c.find_first_of('\'') != c.find_last_of('\'')) || (c.find('"') != string::npos && c.find_first_of('"') != c.find_last_of('"'))){
+         transform(a.begin(), a.end(), a.begin(), ::tolower);
+         transform(b.begin(), b.end(), b.begin(), ::tolower);
+         firstLine = a + " " + b + " " + c;
+      }
+   }else{
+         transform(firstLine.begin(), firstLine.end(), firstLine.begin(), ::tolower);
+      }
 }
 void toUpper(string& firstLine){
    transform(firstLine.begin(), firstLine.end(), firstLine.begin(), ::toupper);
