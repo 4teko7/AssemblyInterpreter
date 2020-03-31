@@ -201,7 +201,7 @@ void checkForCompatibility(string str1,string str2);
 int main() {
 
     // Open the input and output files, check for failures
-    ifstream inFile("reverse");
+    ifstream inFile("tests/code1.txt");
     if (!inFile) { // operator! is synonymous to .fail(), checking if there was a failure
         cerr << "There was a problem opening \"" << "atwon.txt" << "\" as input file" << endl;
         return 1;
@@ -246,7 +246,7 @@ void createLabel(ifstream& inFile,string& stringName){
    istringstream linestream(stringName);
    getline(linestream,labelName,':');
    Label label;
-   label.name = labelName;
+   label.name = trim(labelName);
    getLabelContent(label,inFile,stringName);
    
 }
@@ -601,7 +601,7 @@ void processOneWordInstructions(string& option, string& str1){
          int address = stoi(cleanVariable(str1));
          string type = isItSixteenBitValue(str1) ? "dw" : "db";
          int bit = isItSixteenBitValue(str1) ? 16 : 8;
-         result = (type == "dw") ? memory[address] + memory[address+1] + 1 : memory[address] + 1;
+         result = (type == "dw") ? memory[address] + memory[address+1] * pow(2,8) + 1 : memory[address] + 1;
          checkAndSetFlags(result-1,1,bit,option);
          setMemoryForDbAndDw(address,(unsigned short)result,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),result);
@@ -637,7 +637,7 @@ void processOneWordInstructions(string& option, string& str1){
          int address = stoi(cleanVariable(str1));
          string type = isItSixteenBitValue(str1) ? "dw" : "db";
          int bit = isItSixteenBitValue(str1) ? 16 : 8;
-         result = (type == "dw") ? memory[address] + memory[address+1] - 1 : memory[address] - 1;
+         result = (type == "dw") ? memory[address] + memory[address+1] * pow(2,8) - 1 : memory[address] - 1;
          checkAndSetFlags(result+1,1,bit,option);
          setMemoryForDbAndDw(address,(unsigned short)result,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),result);
@@ -673,7 +673,7 @@ void processOneWordInstructions(string& option, string& str1){
          int result = 0;
          int address = stoi(cleanVariable(str1));
          string type = isItSixteenBitValue(str1) ? "dw" : "db";
-         result = (type == "dw") ? memory[sp] + memory[sp+1] : memory[sp];
+         result = (type == "dw") ? memory[sp] + memory[sp+1] * pow(2,8) : memory[sp];
          setMemoryForDbAndDw(address,(unsigned short)result,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),result);
       }
@@ -1155,7 +1155,7 @@ int getOtherValue(string str1) {
       
    }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
       if(isItSixteenBitValue(str1)){
-        result = memory[stoi(cleanVariable(str1))] + memory[stoi(cleanVariable(str1))+1];
+        result = memory[stoi(cleanVariable(str1))] + memory[stoi(cleanVariable(str1))+1] * pow(2,8);
       }else{
          result = memory[stoi(cleanVariable(str1))];
       }
@@ -1337,7 +1337,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1];
+         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
          checkAndSetFlags(temp,result,16,"add");
          temp += result;
          setMemoryForDbAndDw(address,temp,type);
@@ -1351,7 +1351,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1];
+         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
          checkAndSetFlags(temp,result,16,"sub");
          temp -= result;
          setMemoryForDbAndDw(address,temp,type);
@@ -1366,7 +1366,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1];
+         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
          checkAndSetFlags(temp,result,16,"or");
          temp |= result;
          setMemoryForDbAndDw(address,temp,type);
@@ -1381,7 +1381,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1];
+         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
          checkAndSetFlags(temp,result,16,"and");
          temp &= result;
          setMemoryForDbAndDw(address,temp,type);
@@ -1396,7 +1396,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1];
+         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
          temp = ~temp;
          setMemoryForDbAndDw(address,temp,type);
          setVariableValue(getVariableNameFromVariableAddress(str1),temp); 
@@ -1409,7 +1409,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       if(isItSixteenBitValue(str1)){
          unsigned short temp = 0;
          temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1];
+         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
          checkAndSetFlags(temp,result,16,"xor");
          temp ^= result;
          setMemoryForDbAndDw(address,temp,type);
@@ -1424,7 +1424,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       if(isItSixteenBitValue(str1)){
          unsigned short temp=0;
          temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1];
+         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
          checkAndSetFlags(temp,result,16,"shr");
          for (int i = 0; i < result; i++) {
             cf = temp & 1;
@@ -1445,7 +1445,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       if(isItSixteenBitValue(str1)){
          unsigned short temp=0;
          temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1];
+         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
          checkAndSetFlags(temp,result,16,"shl");
          for (int i = 0; i < result; i++) {
             cf = decToBin(temp).at(0)-'0';
@@ -1465,7 +1465,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       if(isItSixteenBitValue(str1)){
          unsigned short temp=0;
          temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1];
+         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
          checkAndSetFlags(temp,result,16,"rcr");
          for (int i = 0; i < result; i++) {
             unsigned short shiftedValueOfCf = cf << sizeof(memory[stoi(cleanVariable(str1))]) * 8 - 1;
@@ -1490,7 +1490,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       if(isItSixteenBitValue(str1)){
          unsigned short temp=0;
          temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1];
+         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
          checkAndSetFlags(temp,result,16,"rcl");
          for (int i = 0; i < result; i++) {
             bool oldValueOfCf = cf;
@@ -1518,7 +1518,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
       if(isItSixteenBitValue(str1)){
          unsigned short temp=0;
          temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1];
+         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
          checkAndSetFlags(temp,result,16,"sub");
 
       }else{
@@ -1964,7 +1964,7 @@ string cleanVariable(string variable) {
 // SEPARATE WORDS
 void twoWordsComma(istringstream& linestream,string& secondWord, string& thirdWord){
    getLinestreamLine(linestream,secondWord,',');
-   getLinestreamLine(linestream,thirdWord,',');
+   getLinestreamLine(linestream,thirdWord,'999');
 }
 
 void thirdWordsComma(istringstream& linestream,string& secondWord, string& thirdWord, string& forthWord){
