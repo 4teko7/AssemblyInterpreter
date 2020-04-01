@@ -197,11 +197,13 @@ void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterat
 void comparison(unsigned short firstValue,unsigned short secondValue);
 template <class typeOfVariableValue> void setMemoryForDbAndDw(int address,typeOfVariableValue variableValue,string typeOfVariable);
 void exitFromExecution(string paramaterError);
-void checkForCompatibility(string str1,string str2);
+void checkForCompatibility(string option,string str1,string str2);
+bool isItOneWordInstruction(string a);
+void isValidInstruction(string instruction);
 int main() {
 
     // Open the input and output files, check for failures
-    ifstream inFile("tests/code10.txt");
+    ifstream inFile("test5");
     if (!inFile) { // operator! is synonymous to .fail(), checking if there was a failure
         cerr << "There was a problem opening \"" << "atwon.txt" << "\" as input file" << endl;
         return 1;
@@ -277,28 +279,38 @@ void createDbOrDw(string& line){
          dbVariable variable;
          variable.name = firstWord;
          if(checkQuotationMarks(thirdWord) || checkSingleQuotationMark(thirdWord)){
-            variable.value = (unsigned short)thirdWord.at(1);
-         }else{
-            variable.value = determineValueOfInstruction(thirdWord);
-         }
-         if(variable.value > 255) {
+            if((unsigned short)thirdWord.at(1) > 255) {
                cout << "Variable Value is too large to fit into db memory " << endl;
                exit(1);
             }
+            variable.value = (unsigned short)thirdWord.at(1);
+         }else{
+            if(determineValueOfInstruction(thirdWord) > 255) {
+               cout << "Variable Value is too large to fit into db memory " << endl;
+               exit(1);
+            }
+            variable.value = determineValueOfInstruction(thirdWord);
+         }
          dbVariables.push_back(variable);
          queueOfVariables.push_back(make_pair(variable.name,"db"));
       }else{
          dwVariable variable;
          variable.name = firstWord;
          if(checkQuotationMarks(thirdWord) || checkSingleQuotationMark(thirdWord)){
-            variable.value = (unsigned short)thirdWord.at(1);
-         }else{
-            variable.value = determineValueOfInstruction(thirdWord);
-         }
-         if(variable.value > 65535) {
+            if((unsigned short)thirdWord.at(1) > 65535) {
                cout << "Variable Value is too large to fit into dw memory " << endl;
                exit(1);
             }
+            variable.value = (unsigned short)thirdWord.at(1);
+         }else{
+         if(determineValueOfInstruction(thirdWord) > 65535) {
+               cout << "Variable Value is too large to fit into dw memory " << endl;
+               exit(1);
+            }
+            variable.value = determineValueOfInstruction(thirdWord);
+         
+         }
+         
          dwVariables.push_back(variable);
          queueOfVariables.push_back(make_pair(variable.name,"dw"));
 
@@ -409,12 +421,12 @@ void processLabels(int index){
       line = (*it);
       istringstream linestream(line);
       getLinestreamLine(linestream,firstWord,' ');
-      
+      isValidInstruction(firstWord);
       if(firstWord == "mov" || firstWord == "add" || firstWord == "sub" || firstWord == "xor" || firstWord == "or" || firstWord == "and" || firstWord == "not" || firstWord == "shr" || firstWord == "shl" || firstWord == "rcl" || firstWord == "rcr" || firstWord == "cmp"){
          if(line.find("offset") != string::npos) thirdWordsComma(linestream,secondWord,thirdWord,forthWord);
          else twoWordsComma(linestream,secondWord,thirdWord);
          strToMemoryAddress(secondWord,thirdWord);
-         if(forthWord != "offset") checkForCompatibility(secondWord,thirdWord);
+         if(forthWord != "offset") checkForCompatibility(firstWord,secondWord,thirdWord);
          processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
       }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop" || firstWord == "inc" || firstWord == "dec"){
          getLinestreamLine(linestream,secondWord,' ');
@@ -429,11 +441,13 @@ void processLabels(int index){
 
          if(firstWord == "jmp"){
             index2 = getIndexOfLabel(secondWord);
+            if(index2 == -1) exitFromExecution("THERE IS NOT ANY LABEL WITH THIS NAME : " + secondWord);
             canJump = true;
          }else{
             canJump = checkForJumpCondition(firstWord);
             if(canJump){
                index2 = getIndexOfLabel(secondWord);
+               if(index2 == -1) exitFromExecution("THERE IS NOT ANY LABEL WITH THIS NAME : " + secondWord);
             }
 
          }
@@ -786,7 +800,22 @@ void strToMemoryAddress(string& str1,string& str2) {
 
 }
 
-void checkForCompatibility(string str1,string str2){
+
+// BURAYI TEKRAR KONTROL ET
+void isValidInstruction(string a) {
+   if(a == "mov" || a == "add" || a == "sub" || a == "or" || a == "and" || a == "xor" || a == "not" || a == "push" || a == "pop" || a == "cmp" || a == "shr" || a == "shl" || a == "nop" || a == "int" || a == "rcr" ||a == "rcl" || a == "inc" || a == "dec" || a == "int" || a == "div"  || a == "mul" || a == "jmp" || a == "jz" || a == "je" || a == "jnz" || a == "jne" || a == "jja" || a == "jnbe" || a == "jae" || a == "jnc" || a == "jnb" || a == "jb" || a == "jnae" || a == "jc" || a == "jbe" || a == "jna");
+   else exitFromExecution("INVALID INSTRUCTION : " + a);
+}
+
+void checkForCompatibility(string option,string str1,string str2){
+
+      /*
+
+               C  H E C K  for variable definitions db, dw, label, mov, add etc.
+               doulbe variable name
+
+      */
+
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
       std::vector<dbVariable>::iterator firstIt;
@@ -802,7 +831,14 @@ void checkForCompatibility(string str1,string str2){
 
       determineReg(&pnx,&pnhl,str2,isVariableFound1,isVariableFound2,it,it2);
       determineReg(&pmx,&pmhl,str1,isVariableFound1,isVariableFound2,firstIt,firstIt2);
-
+         if(option == "shr" || option == "shl" || option == "rcr" || option == "rcl"){
+            try{
+               if(str2 != "cl" && stoi(str2) >= 32) exitFromExecution("FOR " + option + " ONLY NUMBERS SMALLER THAN 32 OR CL IS ACCEPTED !!!");
+            }catch(exception e){
+               exitFromExecution("FOR " + option + " ONLY NUMBERS SMALLER THAN 32 OR CL IS ACCEPTED !!!");
+            }
+         }
+         if(option == "mov" || option == "add" || option == "sub" || option == "cmp" || option == "or" || option == "and" || option == "xor"){
          if(pmx != nullptr){
             if(pnx != nullptr) return;
             else if(pnhl != nullptr) exitFromExecution("16 Bit - 8 Bit Error");
@@ -919,8 +955,7 @@ void checkForCompatibility(string str1,string str2){
 
          }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
          }
-
-
+   }
 
 
 }
@@ -1054,6 +1089,7 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
 // DETERMINE VALUE OF INSTRUCTION
 // ax,al,msg,1,1d,1h,'1',"1",[msg],[ax],[0090h],[0090]
 int determineValueOfInstruction(string reg) {
+   if(reg == "") return 0;
    string resultReg = reg;
    int result = 0;
    std::vector<dbVariable>::iterator it;
@@ -1135,6 +1171,7 @@ int determineValueOfInstruction(string reg) {
 // determineValueOfInstruction Calls This Function -> getOtherValue
 // 1,1d,1h,'1',"1",[0090h],[0090]
 int getOtherValue(string str1) {
+   if(str1 == "") return 0;
    int result = 0;
    char character;
 
@@ -2043,6 +2080,7 @@ void getLineTrimLower(ifstream& inFile,string& firstLine){
 }
 
 inline string getLinestreamLine(istringstream& linestream,string& word,char option) {
+
    do{
       getline(linestream,word,option);
       if(!linestream) break;
@@ -2069,37 +2107,55 @@ void toLower(string& firstLine){
       string a,b,c = "";
       getLinestreamLine(linestream,a,' ');
       getLinestreamLine(linestream,b,' ');
-      getLinestreamLine(linestream,c,' ');
+      getLinestreamLine(linestream,c,'999');
       transform(b.begin(), b.end(), b.begin(), ::tolower);
       if(b == "db" || b == "dw"){
          transform(a.begin(), a.end(), a.begin(), ::tolower);
+         if(c == "' '") c = "32";
          firstLine = a + " " + b + " " + c;
       }
 
-   }else if((firstLine.find('\'') != string::npos && firstLine.find_first_of('\'') != firstLine.find_last_of('\'')) || (firstLine.find('"') != string::npos && firstLine.find_first_of('"') != firstLine.find_last_of('"'))){
+   }
+   // FOR UPPER CASE CHARACTERS
+   else if((firstLine.find('\'') != string::npos && firstLine.find_first_of('\'') != firstLine.find_last_of('\'')) || (firstLine.find('"') != string::npos && firstLine.find_first_of('"') != firstLine.find_last_of('"'))){
       istringstream linestream(firstLine);
       string a,b,c = "";
       getLinestreamLine(linestream,a,' ');
-      getLinestreamLine(linestream,b,' ');
-      getLinestreamLine(linestream,c,' ');
+      if(firstLine.find("' '") != string::npos){
+         if(isItOneWordInstruction(a))
+            getLinestreamLine(linestream,b,'999');
+         else
+            getLinestreamLine(linestream,b,' ');
+      }else{
+         getLinestreamLine(linestream,b,' ');
+      }
+      getLinestreamLine(linestream,c,'999');
       if((b.find('\'') != string::npos && b.find_first_of('\'') != b.find_last_of('\'')) || (b.find('"') != string::npos && b.find_first_of('"') != b.find_last_of('"'))){
          transform(a.begin(), a.end(), a.begin(), ::tolower);
          transform(c.begin(), c.end(), c.begin(), ::tolower);
+         if(b == "' '") b = "32";
          firstLine = a + " " + b + " " + c;
       }else if((c.find('\'') != string::npos && c.find_first_of('\'') != c.find_last_of('\'')) || (c.find('"') != string::npos && c.find_first_of('"') != c.find_last_of('"'))){
          transform(a.begin(), a.end(), a.begin(), ::tolower);
          transform(b.begin(), b.end(), b.begin(), ::tolower);
+         if(c == "' '") c = "32";
          firstLine = a + " " + b + " " + c;
       }
-   }else{
+   }
+   else{
          transform(firstLine.begin(), firstLine.end(), firstLine.begin(), ::tolower);
       }
+      trim(firstLine);
 }
 void toUpper(string& firstLine){
    transform(firstLine.begin(), firstLine.end(), firstLine.begin(), ::toupper);
 }
 
-
+bool isItOneWordInstruction(string a) {
+   transform(a.begin(), a.end(), a.begin(), ::tolower);
+   if(a == "push" || a == "pop" || a == "inc" || a == "dec" || a == "int" || a == "not" || a == "int" || a == "div"  || a == "mul" || a == "jmp" || a == "jz" || a == "je" || a == "jnz" || a == "jne" || a == "jja" || a == "jnbe" || a == "jae" || a == "jnc" || a == "jnb" || a == "jb" || a == "jnae" || a == "jc" || a == "jbe" || a == "jna") return true;
+   return false;
+}
 //       C H E C K S
 bool checkSpace(string& line){
    return line.find(' ') != string::npos;
