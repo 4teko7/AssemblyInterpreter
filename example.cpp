@@ -113,6 +113,7 @@ bool canJump = false;
 // Pair<Pair<nameOfVariable,Pair<typeOfVariable,balueOfVariable>>,addressOfVariable>
 // nameOfVariable - typeOfVariable
 vector<pair<string,string>> queueOfVariables;
+
 // bool eightBitForMemory1 = false;
 // bool sixteenBitForMemory1 = false;
 
@@ -201,11 +202,17 @@ template <class typeOfVariableValue> void setMemoryForDbAndDw(int address,typeOf
 void exitFromExecution(string paramaterError);
 void checkForCompatibility(string option,string str1,string str2);
 bool isItOneWordInstruction(string a);
-void isValidInstruction(string instruction);
+void isValidLine(string a,string b,string c);
+bool isValidInstruction(string a);
+bool isValidRegister(string a);
+bool isValidVariable(string a);
+bool isValidOtherValue(string str1);
+bool isValidVariableName(string variableName);
+void checkForInvalidVariableNames();
 int main() {
 
     // Open the input and output files, check for failures
-    ifstream inFile("atwon.txt");
+    ifstream inFile("tests/hata6.txt");
     if (!inFile) { // operator! is synonymous to .fail(), checking if there was a failure
         cerr << "There was a problem opening \"" << "atwon.txt" << "\" as input file" << endl;
         return 1;
@@ -220,6 +227,8 @@ int main() {
    }
    determineLabelVariables();
    constructMemory();
+   isint20h = false;
+   checkForInvalidVariableNames();
    processLabels(0);
 }
 
@@ -282,14 +291,12 @@ void createDbOrDw(string& line){
          variable.name = firstWord;
          if(checkQuotationMarks(thirdWord) || checkSingleQuotationMark(thirdWord)){
             if((unsigned short)thirdWord.at(1) > 255) {
-               cout << "Variable Value is too large to fit into db memory " << endl;
-               exit(1);
+               exitFromExecution("Variable Value is too large to fit into db memory ");
             }
             variable.value = (unsigned short)thirdWord.at(1);
          }else{
             if(determineValueOfInstruction(thirdWord) > 255) {
-               cout << "Variable Value is too large to fit into db memory " << endl;
-               exit(1);
+               exitFromExecution("Variable Value is too large to fit into db memory ");
             }
             variable.value = determineValueOfInstruction(thirdWord);
          }
@@ -300,14 +307,12 @@ void createDbOrDw(string& line){
          variable.name = firstWord;
          if(checkQuotationMarks(thirdWord) || checkSingleQuotationMark(thirdWord)){
             if((unsigned short)thirdWord.at(1) > 65535) {
-               cout << "Variable Value is too large to fit into dw memory " << endl;
-               exit(1);
+               exitFromExecution("Variable Value is too large to fit into dw memory ");
             }
             variable.value = (unsigned short)thirdWord.at(1);
          }else{
          if(determineValueOfInstruction(thirdWord) > 65535) {
-               cout << "Variable Value is too large to fit into dw memory " << endl;
-               exit(1);
+               exitFromExecution("Variable Value is too large to fit into dw memory ");
             }
             variable.value = determineValueOfInstruction(thirdWord);
          
@@ -380,6 +385,19 @@ void constructMemory(){
    
 }
 
+void checkForInvalidVariableNames() {
+      std::vector<pair<string,string>>::iterator it;
+      for (it = queueOfVariables.begin(); it != queueOfVariables.end(); it++) {
+         if(!isValidVariableName((*it).first)){
+            exitFromExecution("ERROR : Invalid Variable Name : " + (*it).first);
+         }
+      }
+}
+
+bool isValidVariableName(string variableName) {
+
+}
+
 // SET VARIABLE ADDRESS
 void setVariableAddress(string& variable,int address){
       std::vector<dbVariable>::iterator it;
@@ -424,22 +442,25 @@ void processLabels(int index){
       istringstream linestream(line);
       getLinestreamLine(linestream,firstWord,' ');
       // Bu Satiri Biraz Daha Gelistir
-      isValidInstruction(firstWord);
+       if(!isValidInstruction(firstWord)) exitFromExecution("ERROR : Invalid Instruction : " + firstWord);
       // Bu Satiri Sonra Sil
       if(firstWord == "mov" || firstWord == "add" || firstWord == "sub" || firstWord == "xor" || firstWord == "or" || firstWord == "and" || firstWord == "not" || firstWord == "shr" || firstWord == "shl" || firstWord == "rcl" || firstWord == "rcr" || firstWord == "cmp"){
          if(line.find("offset") != string::npos) thirdWordsComma(linestream,secondWord,thirdWord,forthWord);
          else twoWordsComma(linestream,secondWord,thirdWord);
          strToMemoryAddress(secondWord,thirdWord);
+         isValidLine(firstWord,secondWord,thirdWord);
          if(forthWord != "offset") checkForCompatibility(firstWord,secondWord,thirdWord);
          processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
       }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop" || firstWord == "inc" || firstWord == "dec"){
          getLinestreamLine(linestream,secondWord,' ');
          strToMemoryAddress(secondWord,thirdWord);
+         isValidLine(firstWord,secondWord,thirdWord);
          // checkForCompatibility(secondWord,thirdWord);
          processOneWordInstructions(firstWord,secondWord);
       }else if(firstWord == "nop"){
          
       }else if(firstWord.at(0) == 'j'){
+         isValidLine(firstWord,secondWord,thirdWord);
          getLinestreamLine(linestream,secondWord,' ');
          if(secondWord.at(secondWord.length()-1) == '\r') secondWord = secondWord.substr(0,secondWord.length()-1);
 
@@ -807,9 +828,108 @@ void strToMemoryAddress(string& str1,string& str2) {
 
 
 // BURAYI TEKRAR KONTROL ET
-void isValidInstruction(string a) {
-   if(a == "mov" || a == "add" || a == "sub" || a == "or" || a == "and" || a == "xor" || a == "not" || a == "push" || a == "pop" || a == "cmp" || a == "shr" || a == "shl" || a == "nop" || a == "int" || a == "rcr" ||a == "rcl" || a == "inc" || a == "dec" || a == "int" || a == "div"  || a == "mul" || a == "jmp" || a == "jz" || a == "je" || a == "jnz" || a == "jne" || a == "jja" || a == "jnbe" || a == "jae" || a == "jnc" || a == "jnb" || a == "jb" || a == "jnae" || a == "jc" || a == "jbe" || a == "jna");
-   else exitFromExecution("INVALID INSTRUCTION : " + a);
+void isValidLine(string a,string b,string c) {
+   if(a != "" && !isValidInstruction(a)) exitFromExecution("INVALID INSTRUCTION : " + a);
+   else if(b != "" && !isValidRegister(b) && !isValidVariable(b) && !isValidOtherValue(b)) exitFromExecution("INVALID INSTRUCTION : " + b);
+   else if(c != "" && !isValidRegister(c) && !isValidVariable(c) && !isValidOtherValue(c)) exitFromExecution("INVALID INSTRUCTION : " + c);
+
+}
+
+bool isValidInstruction(string a){
+   if(a == "mov" || a == "add" || a == "sub" || a == "mul" || a == "div" || a == "xor" || a == "or" || a == "and" || a == "not" || a == "rcl" || a == "rcr" || a == "shl" || a == "shr" || a == "push" || a == "pop" ||a == "nop" || a == "cmp" || a=="jmp" || a == "jz" || a == "jnz" || a == "je"  || a == "jne" || a == "ja" || a == "jae" || a == "jb" || a == "jbe" || a == "jnae" || a == "jnb" || a == "jnbe" || a == "jnc" || a == "jc" || a == "int") return true;
+   else false;
+   //exitFromExecution("INVALID INSTRUCTION : " + a);
+}
+bool isValidRegister(string a){
+   toLower(a);
+   a = cleanVariable(a);
+   trim(a);
+   if(a == "ax" || a == "bx" || a == "cx" || a == "dx" || a == "di" || a == "sp" || a == "si" || a == "bp" || a == "ah" || a == "al" || a == "bh" || a == "bl" || a == "ch" || a == "cl" || a == "dh" || a == "dl") return true;
+   else return false;
+}
+bool isValidVariable(string a){
+      std::vector<dbVariable>::iterator it;
+      std::vector<dwVariable>::iterator it2;
+      bool isVariableFound1 = false;
+      bool isVariableFound2 = false;
+
+      a = cleanVariable(a);
+      trim(a);
+
+      for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
+         if(a == (*it).name){
+            return true;
+         }
+
+      }
+      for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++)
+      {
+         if(a == (*it2).name){
+            return true;
+         }
+      }
+}
+
+bool isValidOtherValue(string str1){
+   toLower(str1);
+   str1 = cleanVariable(str1);
+   trim(str1);
+   if((48 <= str1.at(0) && str1.at(0) <= 57)){
+      if(str1.at(str1.length()-1) == 'd'){
+         str1 = str1.substr(0,str1.length()-1);
+         try{
+            stoi(str1);
+            return true;
+         }catch(exception e){
+            return false;
+         }
+      }else if((str1.at(str1.length()-1) == 'h')){
+         str1 = str1.substr(0,str1.length()-1);
+         try{
+            hexToDec(str1);
+            return true;
+         }catch(exception e){
+            return false;
+         }
+      }else if((str1.at(str1.length()-1) == 'b')){
+         str1 = str1.substr(0,str1.length()-1);
+         
+         try{
+            binToDec(str1);
+            return true;
+         }catch(exception e){
+            return false;
+         }
+      }else if((48 <= str1.at(str1.length() -1) && str1.at(str1.length() - 1) <= 57)){
+         
+         try{
+            stoi(str1);
+            return true;
+         }catch(exception e){
+            return false;
+         }
+      }else{
+         return false;
+      }
+      
+   }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
+         try{
+            stoi(cleanVariable(str1));
+            return true;
+         }catch(exception e){
+            return false;
+         }
+   }else{
+      
+      if(str1.find('\'') != string::npos && (str1.find_first_of('\'') != str1.find_last_of('\''))){
+         return true;
+      }else if((str1.find('"') != string::npos || str1.find('\"') != string::npos) && ((str1.find_first_of('\"') != str1.find_last_of('\"')) || (str1.find_first_of('"') != str1.find_last_of('"')))){
+         return true;
+      }else{
+         return false;
+      }
+      
+   }
 }
 
 void checkForCompatibility(string option,string str1,string str2){
@@ -943,8 +1063,6 @@ void checkForCompatibility(string option,string str1,string str2){
                else return;
             }
          }else if(isFirstVariableFound2){
-
-
             if(isVariableFound1 || isVariableFound2){
                if((checkForB(str1) || checkForW(str1)) && (checkForB(str2) || checkForW(str2))) return;
                else exitFromExecution("YOU SHOULD SPECIFY TYPE OF VARIABLE");
@@ -1009,9 +1127,6 @@ void checkForCompatibility(string option,string str1,string str2){
                else  if(determineValueOfInstruction(str2) > 255) exitFromExecution("ERROR : Result Does not fit into 8 Bit register !");
                else return;
             }
-
-
-
 
          }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
          }
