@@ -212,9 +212,9 @@ void checkForInvalidVariableNames();
 int main() {
 
     // Open the input and output files, check for failures
-    ifstream inFile("test5");
+    ifstream inFile("Raw Tests/test1.asm");
     if (!inFile) { // operator! is synonymous to .fail(), checking if there was a failure
-        cerr << "There was a problem opening \"" << "atwon.txt" << "\" as input file" << endl;
+        cerr << "There was a problem when opening " << "input file" << endl;
         return 1;
     }
 
@@ -779,11 +779,29 @@ void strToMemoryAddress(string& str1,string& str2) {
 
       str1 = sstm.str();
       
-   }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1) && str1.at(0) != 'w' && str1.at(0) != 'b'){
-      if(isItSixteenBitValue(str2))
-         str1 = "w" + str1;
-      else
-         str1 = "b" + str1;
+   }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(temp,0)){
+       std::stringstream sstm1;
+       
+       try{
+         char type = 'd';
+         if(temp.at(temp.length() -1 ) == 'd' || temp.at(temp.length() -1 ) == 'h' || temp.at(temp.length() -1 ) == 'b'){
+            type = temp.at(temp.length()-1);
+            temp = temp.substr(0,temp.length()-1);
+         }
+         if(str1.at(0) != 'w' && str1.at(0) != 'b'){
+            stoi(temp);
+            if(isItSixteenBitValue(str2))
+               sstm1 << "w[" << temp << type << ']';          
+            else
+               sstm1 << "b[" << temp << type << ']';          
+         }else{
+            stoi(temp);
+            sstm1 << str1.at(0) << '[' << temp << type << ']';
+         }
+         str1 = sstm1.str();
+       }catch(exception e){
+          exitFromExecution("ERROR : INVALID MEMORY LOCATION !!!");
+       }
     }
 
 
@@ -827,56 +845,29 @@ void strToMemoryAddress(string& str1,string& str2) {
          sstm2 << "b[" << (*pbp) << "d]";   
 
       str2 = sstm2.str();
-   }else if(str2.find('[') != string::npos && str2.find(']') != string::npos && isDigitDecimal(str2,str2.find_first_of('[')+1) && str2.at(0) != 'w' && str2.at(0) != 'b'){
-      if(isItSixteenBitValue(str1))
-         str2 = "w" + str2;
-      else
-         str2 = "b" + str2;
+   }else if(str2.find('[') != string::npos && str2.find(']') != string::npos && isDigitDecimal(temp2,0)){
+       std::stringstream sstm2;
+       try{
+         char type = 'd';
+         if(temp2.at(temp2.length() -1) == 'd' || temp2.at(temp2.length() -1) == 'h' || temp2.at(temp2.length() -1) == 'b'){
+            type = temp2.at(temp2.length()-1);
+            temp2 = temp2.substr(0,temp2.length()-1);
+         }
+         if(str2.at(0) != 'w' && str2.at(0) != 'b'){
+            stoi(temp2);
+            if(isItSixteenBitValue(str1))
+               sstm2 << "w[" << temp2 << type << "]";       
+            else
+               sstm2 << "b[" << temp2 << type << "]";       
+         }else{
+            stoi(temp2);
+            sstm2 << str2.at(0) <<  "[" << temp2 << type << "]";       
+         }
+         str2 = sstm2.str();
+       }catch(exception e){
+          exitFromExecution("ERROR : INVALID MEMORY LOCATION !!!");
+       }
     }
-
-   
-
-   // if(str1.find("[bx]") != string::npos || str1.find("[si]") != string::npos || str1.find("[di]") != string::npos || str1.find("[bp]") != string::npos || str1.find("[ bx ]") != string::npos || str1.find("[ si ]") != string::npos || str1.find("[ di ]") != string::npos || str1.find("[ bp ]") != string::npos){
-   //    std::stringstream sstm;
-   //    if(str1.find("w[bx]") != string::npos || str1.find("w.[bx]") != string::npos || str1.find("w [bx]") != string::npos || str1.find("w[ bx ]") != string::npos || str1.find("w.[ bx ]") != string::npos || str1.find("w [ bx ]") != string::npos)
-   //       sstm << "w[" << (*pbx) << "d]";
-   //    else if(str1.find("b[bx]") != string::npos || str1.find("b.[bx]") != string::npos || str1.find("b [bx]") != string::npos || str1.find("b[ bx ]") != string::npos || str1.find("b.[ bx ]") != string::npos || str1.find("b [ bx ]") != string::npos)
-   //       sstm << "b[" << (*pbx) << "d]";
-   //    else if((str1.find("[bx]") != string::npos || str1.find("[ bx ]") != string::npos) && isItSixteenBitValue(str2))
-   //       sstm << "w[" << (*pbx) << "d]";
-   //    else if((str1.find("[bx]") != string::npos || str1.find("[ bx ]") != string::npos) && !isItSixteenBitValue(str2))
-   //       sstm << "b[" << (*pbx) << "d]";
-
-   //    else if(str1.find("w[si]") != string::npos || str1.find("w.[si]") != string::npos || str1.find("w [si]") != string::npos || str1.find("w[ si ]") != string::npos || str1.find("w.[ si ]") != string::npos || str1.find("w [ si ]") != string::npos)
-   //       sstm << "w[" << (*psi) << "d]";
-   //    else if(str1.find("b[si]") != string::npos || str1.find("b.[si]") != string::npos || str1.find("b [si]") != string::npos || str1.find("b[ si ]") != string::npos || str1.find("b.[ si ]") != string::npos || str1.find("b [ si ]") != string::npos)
-   //       sstm << "b[" << (*psi) << "d]";
-   //    else if((str1.find("[si]") != string::npos || str1.find("[ si ]") != string::npos) && isItSixteenBitValue(str2))
-   //       sstm << "w[" << (*psi) << "d]";
-   //    else if((str1.find("[si]") != string::npos || str1.find("[ si ]") != string::npos) && !isItSixteenBitValue(str2))
-   //       sstm << "b[" << (*psi) << "d]";
-      
-   //    else if(str1.find("w[di]") != string::npos || str1.find("w.[di]") != string::npos || str1.find("w [di]") != string::npos || str1.find("w[ di ]") != string::npos || str1.find("w.[ di ]") != string::npos || str1.find("w [ di ]") != string::npos)
-   //       sstm << "w[" << (*pdi) << "d]";
-   //    else if(str1.find("b[di]") != string::npos || str1.find("b.[di]") != string::npos || str1.find("b [di]") != string::npos || str1.find("b[ di ]") != string::npos || str1.find("b.[ di ]") != string::npos || str1.find("b [ di ]") != string::npos)
-   //       sstm << "b[" << (*pdi) << "d]";
-   //    else if((str1.find("[di]") != string::npos || str1.find("[ di ]") != string::npos) && isItSixteenBitValue(str2))
-   //       sstm << "w[" << (*pdi) << "d]";
-   //    else if((str1.find("[di]") != string::npos || str1.find("[ di ]") != string::npos) && !isItSixteenBitValue(str2))
-   //       sstm << "b[" << (*pdi) << "d]";
-
-   //    else if(str1.find("w[bp]") != string::npos || str1.find("w.[bp]") != string::npos || str1.find("w [bp]") != string::npos || str1.find("w[ bp ]") != string::npos || str1.find("w.[ bp ]") != string::npos || str1.find("w [ bp ]") != string::npos)
-   //       sstm << "w[" << (*pbp) << "d]";
-   //    else if(str1.find("b[bp]") != string::npos || str1.find("b.[bp]") != string::npos || str1.find("b [bp]") != string::npos || str1.find("b[ bp ]") != string::npos || str1.find("b.[ bp ]") != string::npos || str1.find("b [ bp ]") != string::npos)
-   //       sstm << "b[" << (*pbp) << "d]";
-   //    else if((str1.find("[bp]") != string::npos || str1.find("[ bp ]") != string::npos) && isItSixteenBitValue(str2))
-   //       sstm << "w[" << (*pbp) << "d]";
-   //    else if((str1.find("[bp]") != string::npos || str1.find("[ bp ]") != string::npos) && !isItSixteenBitValue(str2))
-   //       sstm << "b[" << (*pbp) << "d]";   
-
-   //    str1 = sstm.str();
-      
-   // }
 
 }
 
