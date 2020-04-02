@@ -147,7 +147,7 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
 // SET VALUE OF SOMETHING
 void setVariableAddress(string& variable,int address);
 void setVariableValue(string variableName,int value);
-void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,string option);
+void checkAndSetFlags(int number1,int number2,int bit,string option);
 
 
 // CLEANING AND PARSING
@@ -207,12 +207,12 @@ bool isValidInstruction(string a);
 bool isValidRegister(string a);
 bool isValidVariable(string a);
 bool isValidOtherValue(string str1);
-bool isValidVariableName(string variableName);
+void isValidVariableName(string variableName);
 void checkForInvalidVariableNames();
 int main() {
 
     // Open the input and output files, check for failures
-    ifstream inFile("tests/hata6.txt");
+    ifstream inFile("test5");
     if (!inFile) { // operator! is synonymous to .fail(), checking if there was a failure
         cerr << "There was a problem opening \"" << "atwon.txt" << "\" as input file" << endl;
         return 1;
@@ -249,8 +249,6 @@ void parseInput(string& line,ifstream& inFile){
 
 
 }
-
-
 
 
 // CREATE LABEL
@@ -385,18 +383,7 @@ void constructMemory(){
    
 }
 
-void checkForInvalidVariableNames() {
-      std::vector<pair<string,string>>::iterator it;
-      for (it = queueOfVariables.begin(); it != queueOfVariables.end(); it++) {
-         if(!isValidVariableName((*it).first)){
-            exitFromExecution("ERROR : Invalid Variable Name : " + (*it).first);
-         }
-      }
-}
 
-bool isValidVariableName(string variableName) {
-
-}
 
 // SET VARIABLE ADDRESS
 void setVariableAddress(string& variable,int address){
@@ -449,7 +436,7 @@ void processLabels(int index){
          else twoWordsComma(linestream,secondWord,thirdWord);
          strToMemoryAddress(secondWord,thirdWord);
          isValidLine(firstWord,secondWord,thirdWord);
-         if(forthWord != "offset") checkForCompatibility(firstWord,secondWord,thirdWord);
+         // if(forthWord != "offset") checkForCompatibility(firstWord,secondWord,thirdWord);
          processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
       }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop" || firstWord == "inc" || firstWord == "dec"){
          getLinestreamLine(linestream,secondWord,' ');
@@ -581,32 +568,34 @@ void processOneWordInstructions(string& option, string& str1){
       exit(0);
    }else if(option == "div"){
       if(determineValueOfInstruction(str1) == 0) exitFromExecution("ERROR : You Can not Divide With Zero");
+      unsigned short willDivide = (unsigned short)determineValueOfInstruction(str1);
       if(isItSixteenBitValue(str1)){
-         unsigned short quotient = *pax / (unsigned short)determineValueOfInstruction(str1);
-         unsigned short remainder = *pax % (unsigned short)determineValueOfInstruction(str1);
-         checkAndSetFlags(*pdx,remainder,16,option);
-         checkAndSetFlags(*pax,quotient,16,option);
+         int resultOfDxAndAx = ((*pdx) << 16) + (*pax);
+         checkAndSetFlags(resultOfDxAndAx,willDivide,16,option);
+         unsigned short quotient = resultOfDxAndAx / willDivide;
+         unsigned short remainder = resultOfDxAndAx % willDivide;
          *pdx = remainder;
          *pax = quotient;
-
       }else{
-         unsigned char quotient = *pax / (unsigned short)determineValueOfInstruction(str1);
-         unsigned char remainder = *pax % (unsigned short)determineValueOfInstruction(str1);
-         checkAndSetFlags(*pah,remainder,8,option);
-         checkAndSetFlags(*pal,quotient,8,option);
+         int resultOfDxAndAx = (*pax);
+         checkAndSetFlags(resultOfDxAndAx,willDivide,8,option);
+         unsigned char quotient = *pax / willDivide;
+         unsigned char remainder = *pax % willDivide;
          *pah = remainder;
          *pal = quotient;
       }
    }else if(option == "mul"){
       if(isItSixteenBitValue(str1)){
          int result = *pax * (unsigned short)determineValueOfInstruction(str1);
-         checkAndSetFlags(*pdx,binToDec(decToBin(result).substr(0,16)),16,option);
-         checkAndSetFlags(*pax,binToDec(decToBin(result).substr(16,32)),16,option);
+         if(binToDec(decToBin(result).substr(0,16)) != 0) cf = 1;
+         else cf = 0;
          *pdx = binToDec(decToBin(result).substr(0,16));
          *pax = binToDec(decToBin(result).substr(16,32));
 
       }else{
-         checkAndSetFlags(*pax,*pal * determineValueOfInstruction(str1),16,option);
+         unsigned short result = *pal * (unsigned short)determineValueOfInstruction(str1);
+         if(binToDec(decToBin(result).substr(0,8)) != 0) cf = 1;
+         else cf = 0;
          *pax = *pal * determineValueOfInstruction(str1);
 
       }
@@ -728,42 +717,64 @@ void processOneWordInstructions(string& option, string& str1){
 }
 
 void strToMemoryAddress(string& str1,string& str2) {
-   if(str1.find("[bx]") != string::npos || str1.find("[si]") != string::npos || str1.find("[di]") != string::npos || str1.find("[bp]") != string::npos){
+   string temp = str1;
+   string temp2 = str2;
+   bool isFirstFound = false;
+   bool isSecondFound = false;
+
+   if(temp.find('[') != string::npos && temp.find(']') != string::npos){
+      isFirstFound = true;
+      temp = temp.substr(temp.find_first_of('[')+1,temp.length());
+      temp = temp.substr(0,temp.find_last_of(']'));
+   }
+
+   if(temp2.find('[') != string::npos && temp2.find(']') != string::npos){
+      isSecondFound = true;
+      temp2 = temp2.substr(temp2.find_first_of('[')+1,temp2.length());
+      temp2 = temp2.substr(0,temp2.find_last_of(']'));
+   }
+
+   trim(temp);
+   trim(temp2);
+
+
+
+   if(isFirstFound && (temp == "bx" || temp == "si" || temp == "di" || temp == "bp")){
       std::stringstream sstm;
-      if(str1.find("w[bx]") != string::npos || str1.find("w.[bx]") != string::npos || str1.find("w [bx]") != string::npos)
+      if(str1.at(0) == 'w' && temp == "bx")
          sstm << "w[" << (*pbx) << "d]";
-      else if(str1.find("b[bx]") != string::npos || str1.find("b.[bx]") != string::npos || str1.find("b [bx]") != string::npos)
+      else if(str1.at(0) == 'b' && temp == "bx")
          sstm << "b[" << (*pbx) << "d]";
-      else if((str1.find("[bx]") && isItSixteenBitValue(str2)))
+      else if(temp == "bx" && isItSixteenBitValue(str2))
          sstm << "w[" << (*pbx) << "d]";
-      else if((str1.find("[bx]") && !isItSixteenBitValue(str2)))
+      else if(temp == "bx" && !isItSixteenBitValue(str2))
          sstm << "b[" << (*pbx) << "d]";
 
-      else if(str1.find("w[si]") != string::npos || str1.find("w.[si]") != string::npos || str1.find("w [si]") != string::npos)
+      else if(str1.at(0) == 'w' && temp == "si")
          sstm << "w[" << (*psi) << "d]";
-      else if(str1.find("b[si]") != string::npos || str1.find("b.[si]") != string::npos || str1.find("b [si]") != string::npos)
+      else if(str1.at(0) == 'b' && temp == "si")
          sstm << "b[" << (*psi) << "d]";
-      else if((str1.find("[si]") && isItSixteenBitValue(str2)))
+      else if(temp == "si" && isItSixteenBitValue(str2))
          sstm << "w[" << (*psi) << "d]";
-      else if((str1.find("[si]") && !isItSixteenBitValue(str2)))
+      else if(temp == "si" && !isItSixteenBitValue(str2))
          sstm << "b[" << (*psi) << "d]";
       
-      else if(str1.find("w[di]") != string::npos || str1.find("w.[di]") != string::npos || str1.find("w [di]") != string::npos)
+      else if(str1.at(0) == 'w' && temp == "di")
          sstm << "w[" << (*pdi) << "d]";
-      else if(str1.find("b[di]") != string::npos || str1.find("b.[di]") != string::npos || str1.find("b [di]") != string::npos)
+      else if(str1.at(0) == 'b' && temp == "di")
          sstm << "b[" << (*pdi) << "d]";
-      else if((str1.find("[di]") && isItSixteenBitValue(str2)))
+      else if(temp == "di" && isItSixteenBitValue(str2))
          sstm << "w[" << (*pdi) << "d]";
-      else if((str1.find("[di]") && !isItSixteenBitValue(str2)))
+      else if(temp == "di" && !isItSixteenBitValue(str2))
          sstm << "b[" << (*pdi) << "d]";
 
-      else if(str1.find("w[bp]") != string::npos || str1.find("w.[bp]") != string::npos || str1.find("w [bp]") != string::npos)
+      else if(str1.at(0) == 'w' && temp == "bp")
          sstm << "w[" << (*pbp) << "d]";
-      else if(str1.find("b[bp]") != string::npos || str1.find("b.[bp]") != string::npos || str1.find("b [bp]") != string::npos)
+      else if(str1.at(0) == 'b' && temp == "bp")
          sstm << "b[" << (*pbp) << "d]";
-      else if((str1.find("[bp]") && isItSixteenBitValue(str2)))
+      else if(temp == "bp" && isItSixteenBitValue(str2))
          sstm << "w[" << (*pbp) << "d]";
-      else if((str1.find("[bp]") && !isItSixteenBitValue(str2)))
+      else if(temp == "bp" && !isItSixteenBitValue(str2))
          sstm << "b[" << (*pbp) << "d]";   
 
       str1 = sstm.str();
@@ -775,42 +786,44 @@ void strToMemoryAddress(string& str1,string& str2) {
          str1 = "b" + str1;
     }
 
-   if(str2.find("[bx]") != string::npos || str2.find("[si]") != string::npos || str2.find("[di]") != string::npos || str2.find("[bp]") != string::npos){
+
+
+   if(isSecondFound && (temp2 == "bx" || temp2 == "si" || temp2 == "di" || temp2 == "bp")){
       std::stringstream sstm2;
-      if(str2.find("w[bx]") != string::npos || str2.find("w.[bx]") != string::npos || str2.find("w [bx]") != string::npos)
+      if(str2.at(0) == 'w' && temp2 == "bx")
          sstm2 << "w[" << (*pbx) << "d]";
-      else if(str2.find("b[bx]") != string::npos || str2.find("b.[bx]") != string::npos || str2.find("b [bx]") != string::npos)
+      else if(str2.at(0) == 'b' && temp2 == "bx")
          sstm2 << "b[" << (*pbx) << "d]";
-      else if((str2.find("[bx]") != string::npos && isItSixteenBitValue(str1)))
+      else if(temp2 == "bx" && isItSixteenBitValue(str1))
          sstm2 << "w[" << (*pbx) << "d]";
-      else if((str2.find("[bx]") != string::npos && !isItSixteenBitValue(str1)))
+      else if(temp2 == "bx" && !isItSixteenBitValue(str1))
          sstm2 << "b[" << (*pbx) << "d]";
 
-      else if(str2.find("w[si]") != string::npos || str2.find("w.[si]") != string::npos || str2.find("w [si]") != string::npos)
+      else if(str2.at(0) == 'w' && temp2 == "si")
          sstm2 << "w[" << (*psi) << "d]";
-      else if(str2.find("b[si]") != string::npos || str2.find("b.[si]") != string::npos || str2.find("b [si]") != string::npos)
+      else if(str2.at(0) == 'b' && temp2 == "si")
          sstm2 << "b[" << (*psi) << "d]";
-      else if((str2.find("[si]") != string::npos && isItSixteenBitValue(str1)))
+      else if(temp2 =="si" && isItSixteenBitValue(str1))
          sstm2 << "w[" << (*psi) << "d]";
-      else if((str2.find("[si]") != string::npos && !isItSixteenBitValue(str1)))
+      else if(temp2 == "si" && !isItSixteenBitValue(str1))
          sstm2 << "b[" << (*psi) << "d]";
-
-      else if(str2.find("w[di]") != string::npos || str2.find("w.[di]") != string::npos || str2.find("w [di]") != string::npos)
-         sstm2 << "w[" << (*pdi) << "d]";
-      else if(str2.find("b[di]") != string::npos || str2.find("b.[di]") != string::npos || str2.find("b [di]") != string::npos)
-         sstm2 << "b[" << (*pdi) << "d]";
-      else if((str2.find("[di]") != string::npos && isItSixteenBitValue(str1)))
-         sstm2 << "w[" << (*pdi) << "d]";
-      else if((str2.find("[di]") != string::npos && !isItSixteenBitValue(str1)))
-         sstm2 << "b[" << (*pdi) << "d]";
       
-      else if(str2.find("w[bp]") != string::npos || str2.find("w.[bp]") != string::npos || str2.find("w [bp]") != string::npos)
+      else if(str2.at(0) == 'w' && temp2 == "di")
+         sstm2 << "w[" << (*pdi) << "d]";
+      else if(str2.at(0) == 'b' && temp2 == "di")
+         sstm2 << "b[" << (*pdi) << "d]";
+      else if(temp2 == "di" && isItSixteenBitValue(str1))
+         sstm2 << "w[" << (*pdi) << "d]";
+      else if(temp2 == "di" && !isItSixteenBitValue(str1))
+         sstm2 << "b[" << (*pdi) << "d]";
+
+      else if(str2.at(0) == 'w' && temp2 == "bp")
          sstm2 << "w[" << (*pbp) << "d]";
-      else if(str2.find("b[bp]") != string::npos || str2.find("b.[bp]") != string::npos || str2.find("b [bp]") != string::npos)
+      else if(str2.at(0) == 'b' && temp2 == "bp")
          sstm2 << "b[" << (*pbp) << "d]";
-      else if((str2.find("[bp]") != string::npos && isItSixteenBitValue(str1)))
+      else if(temp2 == "bp" && isItSixteenBitValue(str1))
          sstm2 << "w[" << (*pbp) << "d]";
-      else if((str2.find("[bp]") != string::npos && !isItSixteenBitValue(str1)))
+      else if(temp2 == "bp" && !isItSixteenBitValue(str1))
          sstm2 << "b[" << (*pbp) << "d]";   
 
       str2 = sstm2.str();
@@ -823,9 +836,62 @@ void strToMemoryAddress(string& str1,string& str2) {
 
    
 
+   // if(str1.find("[bx]") != string::npos || str1.find("[si]") != string::npos || str1.find("[di]") != string::npos || str1.find("[bp]") != string::npos || str1.find("[ bx ]") != string::npos || str1.find("[ si ]") != string::npos || str1.find("[ di ]") != string::npos || str1.find("[ bp ]") != string::npos){
+   //    std::stringstream sstm;
+   //    if(str1.find("w[bx]") != string::npos || str1.find("w.[bx]") != string::npos || str1.find("w [bx]") != string::npos || str1.find("w[ bx ]") != string::npos || str1.find("w.[ bx ]") != string::npos || str1.find("w [ bx ]") != string::npos)
+   //       sstm << "w[" << (*pbx) << "d]";
+   //    else if(str1.find("b[bx]") != string::npos || str1.find("b.[bx]") != string::npos || str1.find("b [bx]") != string::npos || str1.find("b[ bx ]") != string::npos || str1.find("b.[ bx ]") != string::npos || str1.find("b [ bx ]") != string::npos)
+   //       sstm << "b[" << (*pbx) << "d]";
+   //    else if((str1.find("[bx]") != string::npos || str1.find("[ bx ]") != string::npos) && isItSixteenBitValue(str2))
+   //       sstm << "w[" << (*pbx) << "d]";
+   //    else if((str1.find("[bx]") != string::npos || str1.find("[ bx ]") != string::npos) && !isItSixteenBitValue(str2))
+   //       sstm << "b[" << (*pbx) << "d]";
+
+   //    else if(str1.find("w[si]") != string::npos || str1.find("w.[si]") != string::npos || str1.find("w [si]") != string::npos || str1.find("w[ si ]") != string::npos || str1.find("w.[ si ]") != string::npos || str1.find("w [ si ]") != string::npos)
+   //       sstm << "w[" << (*psi) << "d]";
+   //    else if(str1.find("b[si]") != string::npos || str1.find("b.[si]") != string::npos || str1.find("b [si]") != string::npos || str1.find("b[ si ]") != string::npos || str1.find("b.[ si ]") != string::npos || str1.find("b [ si ]") != string::npos)
+   //       sstm << "b[" << (*psi) << "d]";
+   //    else if((str1.find("[si]") != string::npos || str1.find("[ si ]") != string::npos) && isItSixteenBitValue(str2))
+   //       sstm << "w[" << (*psi) << "d]";
+   //    else if((str1.find("[si]") != string::npos || str1.find("[ si ]") != string::npos) && !isItSixteenBitValue(str2))
+   //       sstm << "b[" << (*psi) << "d]";
+      
+   //    else if(str1.find("w[di]") != string::npos || str1.find("w.[di]") != string::npos || str1.find("w [di]") != string::npos || str1.find("w[ di ]") != string::npos || str1.find("w.[ di ]") != string::npos || str1.find("w [ di ]") != string::npos)
+   //       sstm << "w[" << (*pdi) << "d]";
+   //    else if(str1.find("b[di]") != string::npos || str1.find("b.[di]") != string::npos || str1.find("b [di]") != string::npos || str1.find("b[ di ]") != string::npos || str1.find("b.[ di ]") != string::npos || str1.find("b [ di ]") != string::npos)
+   //       sstm << "b[" << (*pdi) << "d]";
+   //    else if((str1.find("[di]") != string::npos || str1.find("[ di ]") != string::npos) && isItSixteenBitValue(str2))
+   //       sstm << "w[" << (*pdi) << "d]";
+   //    else if((str1.find("[di]") != string::npos || str1.find("[ di ]") != string::npos) && !isItSixteenBitValue(str2))
+   //       sstm << "b[" << (*pdi) << "d]";
+
+   //    else if(str1.find("w[bp]") != string::npos || str1.find("w.[bp]") != string::npos || str1.find("w [bp]") != string::npos || str1.find("w[ bp ]") != string::npos || str1.find("w.[ bp ]") != string::npos || str1.find("w [ bp ]") != string::npos)
+   //       sstm << "w[" << (*pbp) << "d]";
+   //    else if(str1.find("b[bp]") != string::npos || str1.find("b.[bp]") != string::npos || str1.find("b [bp]") != string::npos || str1.find("b[ bp ]") != string::npos || str1.find("b.[ bp ]") != string::npos || str1.find("b [ bp ]") != string::npos)
+   //       sstm << "b[" << (*pbp) << "d]";
+   //    else if((str1.find("[bp]") != string::npos || str1.find("[ bp ]") != string::npos) && isItSixteenBitValue(str2))
+   //       sstm << "w[" << (*pbp) << "d]";
+   //    else if((str1.find("[bp]") != string::npos || str1.find("[ bp ]") != string::npos) && !isItSixteenBitValue(str2))
+   //       sstm << "b[" << (*pbp) << "d]";   
+
+   //    str1 = sstm.str();
+      
+   // }
 
 }
 
+void checkForInvalidVariableNames() {
+      std::vector<pair<string,string>>::iterator it;
+      for (it = queueOfVariables.begin(); it != queueOfVariables.end(); it++) {
+         isValidVariableName((*it).first);
+      }
+}
+
+void isValidVariableName(string variableName) {
+   toLower(variableName);
+   if(isValidInstruction(variableName) || isValidRegister(variableName)) exitFromExecution("ERROR : " + variableName + " IS NOT A VALID VARIABLE NAME !!!");
+   else if(variableName == "label" || variableName == "db" || variableName == "dw") exitFromExecution("ERROR : " + variableName + " IS NOT A VALID VARIABLE NAME !!!");
+}
 
 // BURAYI TEKRAR KONTROL ET
 void isValidLine(string a,string b,string c) {
@@ -1377,10 +1443,12 @@ int getOtherValue(string str1) {
       }
       
    }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
+      int address = stoi(cleanVariable(str1));
+      if(address > 65535) exitFromExecution("ERROR : THERE IS NOT SUCH A LOCATION !!!");
       if(isItSixteenBitValue(str1)){
-        result = memory[stoi(cleanVariable(str1))] + memory[stoi(cleanVariable(str1))+1] * pow(2,8);
+        result = memory[address] + memory[address+1] * pow(2,8);
       }else{
-         result = memory[stoi(cleanVariable(str1))];
+         result = memory[address];
       }
    }else{
       
@@ -1769,7 +1837,7 @@ void setMemoryForDbAndDw(int address,typeOfVariableValue variableValue,string ty
 
 // FLAGS
 
-void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,string option) {
+void checkAndSetFlags(int number1,int number2,int bit,string option) {
    unsigned char num1EightBit = number1;
    unsigned char num2EightBit = number2;
    unsigned short num1SixteenBit = number1;
@@ -1849,9 +1917,12 @@ void checkAndSetFlags(unsigned short number1,unsigned short number2,int bit,stri
          if(number1Binary < number2Binary) af = 1;
          else af = 0;
       }
-   }else if(option == "mul"){
-         if(65535 > (number1 * number2) && (number1 * number2) > 255) cf = 1;
-         else cf = 0;
+   }else if(option == "div"){
+         if(bit == 8){
+            if(number1 / number2 > 255 || number1 % number2 > 255) exitFromExecution("ERROR : DIVISION OVERFLOW !!!");
+         }else if(bit == 16){
+            if(number1 / number2 > 65535 || number1 % number2 > 65535) exitFromExecution("ERROR : DIVISION OVERFLOW !!!");
+         }
    }else if(option == "inc"){
       if(bit == 8){
          eightBitResult = num1EightBit + 1;
@@ -2187,7 +2258,7 @@ string cleanVariable(string variable) {
 // SEPARATE WORDS
 void twoWordsComma(istringstream& linestream,string& secondWord, string& thirdWord){
    getLinestreamLine(linestream,secondWord,',');
-   getLinestreamLine(linestream,thirdWord,'999');
+   getLinestreamLine(linestream,thirdWord,'~');
 }
 
 void thirdWordsComma(istringstream& linestream,string& secondWord, string& thirdWord, string& forthWord){
@@ -2265,13 +2336,16 @@ void getLineTrimLower(ifstream& inFile,string& firstLine){
 }
 
 inline string getLinestreamLine(istringstream& linestream,string& word,char option) {
-
-   do{
-      getline(linestream,word,option);
-      if(!linestream) break;
-   }while(word == "");
-      trim(word);
-    return word;
+   if(option == '~'){
+      getline(linestream,word);
+   }else{
+      do{
+         getline(linestream,word,option);
+         if(!linestream) break;
+      }while(word == "");
+   }
+   trim(word);
+   return word;
 }
 
 int countSpecificCharacter(string str, char character) {
@@ -2292,7 +2366,7 @@ void toLower(string& firstLine){
       string a,b,c = "";
       getLinestreamLine(linestream,a,' ');
       getLinestreamLine(linestream,b,' ');
-      getLinestreamLine(linestream,c,'999');
+      getLinestreamLine(linestream,c,'~');
       transform(b.begin(), b.end(), b.begin(), ::tolower);
       if(b == "db" || b == "dw"){
          transform(a.begin(), a.end(), a.begin(), ::tolower);
@@ -2308,13 +2382,13 @@ void toLower(string& firstLine){
       getLinestreamLine(linestream,a,' ');
       if(firstLine.find("' '") != string::npos){
          if(isItOneWordInstruction(a))
-            getLinestreamLine(linestream,b,'999');
+            getLinestreamLine(linestream,b,'~');
          else
             getLinestreamLine(linestream,b,' ');
       }else{
          getLinestreamLine(linestream,b,' ');
       }
-      getLinestreamLine(linestream,c,'999');
+      getLinestreamLine(linestream,c,'~');
       if((b.find('\'') != string::npos && b.find_first_of('\'') != b.find_last_of('\'')) || (b.find('"') != string::npos && b.find_first_of('"') != b.find_last_of('"'))){
          transform(a.begin(), a.end(), a.begin(), ::tolower);
          transform(c.begin(), c.end(), c.begin(), ::tolower);
