@@ -894,6 +894,7 @@ void isValidLine(string a,string b,string c) {
 }
 
 bool isValidInstruction(string a){
+   toLower(a);
    if(a == "mov" || a == "add" || a == "sub" || a == "mul" || a == "div" || a == "xor" || a == "or" || a == "and" || a == "not" || a == "rcl" || a == "rcr" || a == "shl" || a == "shr" || a == "push" || a == "pop" ||a == "nop" || a == "cmp" || a=="jmp" || a == "jz" || a == "jnz" || a == "je"  || a == "jne" || a == "ja" || a == "jae" || a == "jb" || a == "jbe" || a == "jnae" || a == "jnb" || a == "jnbe" || a == "jnc" || a == "jc" || a == "int") return true;
    else false;
    //exitFromExecution("INVALID INSTRUCTION : " + a);
@@ -910,7 +911,8 @@ bool isValidVariable(string a){
       std::vector<dwVariable>::iterator it2;
       bool isVariableFound1 = false;
       bool isVariableFound2 = false;
-      if((a.at(0) == 'w' || a.at(0) == 'b') && (a.at(1) == ' ' || a.at(1) == '.')) a = a.substr(2,a.length());
+      toLower(a);
+      if((a.at(0) == 'w' || a.at(0) == 'b') && (a.at(1) == ' ' || a.at(1) == '.' || a.at(1) == '[')) a = a.substr(2,a.length());
 
       a = cleanVariable(a);
       trim(a);
@@ -933,7 +935,7 @@ bool isValidOtherValue(string str1){
    toLower(str1);
    str1 = cleanVariable(str1);
    trim(str1);
-   if((str1.at(0) == 'w' || str1.at(0) == 'b') && (str1.at(1) == ' ' || str1.at(1) == '.')) str1 = str1.substr(2,str1.length());
+   if((str1.at(0) == 'w' || str1.at(0) == 'b') && (str1.at(1) == ' ' || str1.at(1) == '.' || str1.at(1) == '[')) str1 = str1.substr(2,str1.length());
    if((48 <= str1.at(0) && str1.at(0) <= 57)){
       if(str1.at(str1.length()-1) == 'd'){
          str1 = str1.substr(0,str1.length()-1);
@@ -993,7 +995,9 @@ bool isValidOtherValue(string str1){
 }
 
 void checkForCompatibility(string option,string str1,string str2){
-
+   toLower(option);
+   toLower(str1);
+   toLower(str2);
       /*
 
                C  H E C K  for variable definitions db, dw, label, mov, add etc.
@@ -1023,38 +1027,70 @@ void checkForCompatibility(string option,string str1,string str2){
                exitFromExecution("FOR " + option + " ONLY NUMBERS SMALLER THAN 32 OR CL IS ACCEPTED !!!");
             }
          }
-         if(option == "mov" || option == "add" || option == "sub" || option == "cmp" || option == "or" || option == "and" || option == "xor"){
+         else if(option == "mov" || option == "add" || option == "sub" || option == "cmp" || option == "or" || option == "and" || option == "xor"){
          if(pmx != nullptr){
-            if(pnx != nullptr) return;
-            else if(pnhl != nullptr) exitFromExecution("16 Bit - 8 Bit Error");
+            if(checkForB(str2)) exitFromExecution("16 Bit - 8 Bit Error At : " + str2);
+            else if(pnx != nullptr) return;
+            else if(pnhl != nullptr) exitFromExecution("16 Bit - 8 Bit Error At : " + str2);
             else if(isVariableFound1 || isVariableFound2){
-               if(checkForB(str2) || checkForW(str2)) return;
-               else exitFromExecution("YOU SHOULD SPECIFY TYPE OF VARIABLE");
+               if(isItSixteenBitValue(str2)) return;
+               else exitFromExecution("16 Bit - 8 Bit Error");
             }else if(isDigitDecimal(str2,0)){
                   if(isDigitDecimal(str2,str2.length()-1) || (str2.at(str2.length() -1 ) == 'd') || (str2.at(str2.length() -1 ) == 'h') || (str2.at(str2.length() -1 ) == 'b')) {
-                     if(determineValueOfInstruction(str2) > 65535) exitFromExecution("ERROR : Result Does not fit into 16 Bit register !");
+                     if(determineValueOfInstruction(str2) > 65535) exitFromExecution("ERROR : Result Does not fit into 16 Bit register ! : " + str2);
                      else return;
                   }
-                  else exitFromExecution("ERROR : INVALID NUMBER !!!");
-            }else if(checkForW(str2)) return;
-            else if(checkForB(str2))  exitFromExecution("8 Bit - 16 Bit Error");
-            else if(determineValueOfInstruction(str2) > 65535) exitFromExecution("ERROR : Result Does not fit into 16 Bit register !");
+            }else if(checkForW(str2)){
+               string temp = str2;
+               temp = temp.substr(1,temp.length());
+               if(temp.at(0) == '.') temp = temp.substr(1,temp.length());
+               trim(temp);
+               if(isDigitDecimal(temp,0)){
+                  if(isDigitDecimal(temp,temp.length()-1)){
+                     if(determineValueOfInstruction(temp) > 65535) exitFromExecution("ERROR : Result Does not fit into 16 Bit register ! : " + str2);
+                     else return;
+                  }else if(temp.at(temp.length() -1 ) == 'd' || temp.at(temp.length() -1 ) == 'h' || temp.at(temp.length() -1 ) == 'b') {
+                     exitFromExecution("ERROR : INVALID CHARACTER AT : " + str2);
+                  }
+               }else {
+                  if(determineValueOfInstruction(temp) > 65535)  exitFromExecution("ERROR : Result Does not fit into 16 Bit register ! : " + str2);
+                  else return;
+               }
+
+            }
+            else if(determineValueOfInstruction(str2) > 65535) exitFromExecution("ERROR : Result Does not fit into 16 Bit register ! : " + str2);
             else return;
          }else if(pmhl != nullptr){
-            if(pnhl != nullptr) return;
-            else if(pnx != nullptr) exitFromExecution("8 Bit - 16 Bit Error");
+            if(checkForW(str2)) exitFromExecution("8 Bit - 16 Bit Error At : " + str2);
+            else if(pnhl != nullptr) return;
+            else if(pnx != nullptr) exitFromExecution("8 Bit - 16 Bit Error At : " + str2);
             else if(isVariableFound1 || isVariableFound2){
-               if(checkForB(str2) || checkForW(str2)) return;
-               else exitFromExecution("YOU SHOULD SPECIFY TYPE OF VARIABLE");
+               if(!isItSixteenBitValue(str2)) return;
+               else exitFromExecution("8 Bit - 16 Bit Error At : " + str2);
             }else if(isDigitDecimal(str2,0)){
                   if(isDigitDecimal(str2,str2.length()-1) || (str2.at(str2.length() -1 ) == 'd') || (str2.at(str2.length() -1 ) == 'h') || (str2.at(str2.length() -1 ) == 'b')) {
-                     if(determineValueOfInstruction(str2) > 255) exitFromExecution("ERROR : Result Does not fit into 8 Bit register !");
+                     if(determineValueOfInstruction(str2) > 255) exitFromExecution("ERROR : Result Does not fit into 8 Bit register ! : " + str2);
                      else return;
                   }
-                  else exitFromExecution("ERROR : INVALID NUMBER !!!");
-            }else if(checkForW(str2))  exitFromExecution("8 Bit - 16 Bit Error");
-            else if(checkForB(str2)) return;
-            else if(determineValueOfInstruction(str2) > 255) exitFromExecution("8 Bit - 16 Bit Error");
+            }else if(checkForB(str2)){
+               string temp = str2;
+               temp = temp.substr(1,temp.length());
+               if(temp.at(0) == '.') temp = temp.substr(1,temp.length());
+               trim(temp);
+               if(isDigitDecimal(temp,0)){
+                  if(isDigitDecimal(temp,temp.length()-1)){
+                     if(determineValueOfInstruction(temp) > 255) exitFromExecution("ERROR : Result Does not fit into 8 Bit register ! : " + str2);
+                     else return;
+                  }else if(temp.at(temp.length() -1 ) == 'd' || temp.at(temp.length() -1 ) == 'h' || temp.at(temp.length() -1 ) == 'b') {
+                     exitFromExecution("ERROR : INVALID CHARACTER AT : " + str2);
+                  }
+               }else {
+                  if(determineValueOfInstruction(temp) > 255)  exitFromExecution("ERROR : Result Does not fit into 8 Bit register ! : " + str2);
+                  else return;
+               }
+
+            }
+            else if(determineValueOfInstruction(str2) > 255) exitFromExecution("ERROR : Result Does not fit into 8 Bit register ! : " + str2);
             else return;
          }else if(isFirstVariableFound1){
             if(isVariableFound1 || isVariableFound2){
@@ -1201,18 +1237,18 @@ void exitFromExecution(string paramaterError) {
 }
 
 bool checkForB(string parameter){
-   if((parameter.at(0) == 'b' || parameter.at(0) == 'B') && (parameter.at(1) == ' ' || parameter.at(1) == '.')) return true;
+   if((parameter.at(0) == 'b' || parameter.at(0) == 'B') && (parameter.at(1) == ' ' || parameter.at(1) == '.' || parameter.at(1) == '[')) return true;
    else return false;
 }
 bool checkForW(string parameter){
-   if((parameter.at(0) == 'w' || parameter.at(0) == 'W') && (parameter.at(1) == ' ' || parameter.at(1) == '.')) return true;
+   if((parameter.at(0) == 'w' || parameter.at(0) == 'W') && (parameter.at(1) == ' ' || parameter.at(1) == '.' || parameter.at(1) == '[')) return true;
    else return false;
 }
 
 
 bool isItSixteenBitValue(string str1) {
-      if((str1.at(0) == 'w') && (str1.at(1) == ' ' || str1.at(1) == '.')) return true;
-      else if((str1.at(0) == 'b') && (str1.at(1) == ' ' || str1.at(1) == '.')) return false;
+      if(checkForW(str1)) return true;
+      else if(checkForB(str1)) return false;
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
       std::vector<dbVariable>::iterator firstIt;
@@ -1337,6 +1373,7 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
 // ax,al,msg,1,1d,1h,'1',"1",[msg],[ax],[0090h],[0090]
 int determineValueOfInstruction(string reg) {
    if(reg == "") return 0;
+   toLower(reg);
    string resultReg = reg;
    int result = 0;
    std::vector<dbVariable>::iterator it;
@@ -1422,7 +1459,7 @@ int getOtherValue(string str1) {
    int result = 0;
    char character;
    bool isItSixteenBitt = isItSixteenBitValue(str1);
-   if((str1.at(0) == 'w'  || str1.at(0) == 'b') && (str1.at(1) == ' ' || str1.at(1) == '.')) str1 = str1.substr(2,str1.length());
+   if((str1.at(0) == 'w'  || str1.at(0) == 'b') && (str1.at(1) == ' ' || str1.at(1) == '.' || str1.at(1) == '[')) str1 = str1.substr(2,str1.length());
 
    if((48 <= str1.at(0) && str1.at(0) <= 57)){
       if(str1.at(str1.length()-1) == 'd'){
