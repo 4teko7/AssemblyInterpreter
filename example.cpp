@@ -82,7 +82,7 @@ struct dbVariable{
     string name;
     string type = "db";
     int address = 0;
-    unsigned char value = 0;
+    unsigned short value = 0;
 };
 
 
@@ -186,7 +186,8 @@ void toLower(string& firstLine);
 int countSpecificCharacter(string str, char character);
 void printLabels();
 void printVariables();
-
+int getEightBitValueOfNumber(int number);
+int getSixteenBitValueOfNumber(int number);
 
 
 
@@ -881,7 +882,7 @@ void checkForInvalidVariableNames() {
 void isValidVariableName(string variableName) {
    toLower(variableName);
    if(isValidInstruction(variableName) || isValidRegister(variableName)) exitFromExecution("ERROR : " + variableName + " IS NOT A VALID VARIABLE NAME !!!");
-   else if(variableName == "label" || variableName == "db" || variableName == "dw") exitFromExecution("ERROR : " + variableName + " IS NOT A VALID VARIABLE NAME !!!");
+   else if(variableName == "label" || variableName == "db" || variableName == "dw" || variableName == "w" || variableName == "b") exitFromExecution("ERROR : " + variableName + " IS NOT A VALID VARIABLE NAME !!!");
 }
 
 // BURAYI TEKRAR KONTROL ET
@@ -909,6 +910,7 @@ bool isValidVariable(string a){
       std::vector<dwVariable>::iterator it2;
       bool isVariableFound1 = false;
       bool isVariableFound2 = false;
+      if((a.at(0) == 'w' || a.at(0) == 'b') && (a.at(1) == ' ' || a.at(1) == '.')) a = a.substr(2,a.length());
 
       a = cleanVariable(a);
       trim(a);
@@ -931,6 +933,7 @@ bool isValidOtherValue(string str1){
    toLower(str1);
    str1 = cleanVariable(str1);
    trim(str1);
+   if((str1.at(0) == 'w' || str1.at(0) == 'b') && (str1.at(1) == ' ' || str1.at(1) == '.')) str1 = str1.substr(2,str1.length());
    if((48 <= str1.at(0) && str1.at(0) <= 57)){
       if(str1.at(str1.length()-1) == 'd'){
          str1 = str1.substr(0,str1.length()-1);
@@ -1208,6 +1211,8 @@ bool checkForW(string parameter){
 
 
 bool isItSixteenBitValue(string str1) {
+      if((str1.at(0) == 'w') && (str1.at(1) == ' ' || str1.at(1) == '.')) return true;
+      else if((str1.at(0) == 'b') && (str1.at(1) == ' ' || str1.at(1) == '.')) return false;
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
       std::vector<dbVariable>::iterator firstIt;
@@ -1224,12 +1229,12 @@ bool isItSixteenBitValue(string str1) {
       if(pmx) return true;
       else if(pmhl) return false;
       else if(isVariableFound1) {
-         if(str1.at(0) == 'w') return true;
-         else return false;
+         // if(str1.at(0) == 'w') return true;
+         return false;
       }
       else if(isVariableFound2) {
-         if(str1.at(0) == 'b') return false;
-         else return true;
+         // if(str1.at(0) == 'b') return false;
+         return true;
       }else if((48 <= str1.at(0) && str1.at(0) <= 57)){
             if(str1.at(str1.length()-1) == 'd'){
                str1 = str1.substr(0,str1.length()-1);
@@ -1252,15 +1257,15 @@ bool isItSixteenBitValue(string str1) {
             
          }
 
-      else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1) && str1.at(0) == 'w') return true;
-      else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1) && str1.at(0) == 'b') return false;
+      // else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1) && str1.at(0) == 'w') return true;
+      else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)) return false;
       else if(str1.find('\'') != string::npos && (str1.find_first_of('\'') != str1.find_last_of('\''))){
-         if(str1.at(0) == 'w') return true;
-         else return false;
+         // if(str1.at(0) == 'w') return true;
+         return false;
       }
       else if(((str1.find('"') != string::npos) && (str1.find_first_of('"') != str1.find_last_of('"'))) || ((str1.find('\"') != string::npos) && (str1.find_first_of('\"') != str1.find_last_of('\"')))){
-         if(str1.at(0) == 'w') return true;
-         else return false;
+         // if(str1.at(0) == 'w') return true;
+         return false;
       }else return false;
    // ADD w'a',w"a" ETC. HERE.
 
@@ -1398,7 +1403,7 @@ int determineValueOfInstruction(string reg) {
          result = ((*it).value); 
       }else if(isVariableFound2){
          if(!isItSixteenBitValue(reg)){
-            result = binToDec(decToBin((*it2).value).substr(8,16));
+            result = getEightBitValueOfNumber((*it2).value);
          }else{
             result = (*it2).value; 
          }
@@ -1416,6 +1421,8 @@ int getOtherValue(string str1) {
    if(str1 == "") return 0;
    int result = 0;
    char character;
+   bool isItSixteenBitt = isItSixteenBitValue(str1);
+   if((str1.at(0) == 'w'  || str1.at(0) == 'b') && (str1.at(1) == ' ' || str1.at(1) == '.')) str1 = str1.substr(2,str1.length());
 
    if((48 <= str1.at(0) && str1.at(0) <= 57)){
       if(str1.at(str1.length()-1) == 'd'){
@@ -1452,7 +1459,21 @@ int getOtherValue(string str1) {
       }
       result = character;
    }
-      return result;
+   if(isItSixteenBitt){
+      return getSixteenBitValueOfNumber(result);
+   }else{
+      return getEightBitValueOfNumber(result);
+   }
+}
+
+int getEightBitValueOfNumber(int number){
+   string temp = decToBin(number);
+   return binToDec(temp.substr(temp.length()-8,temp.length()));
+}
+
+int getSixteenBitValueOfNumber(int number){
+   string temp = decToBin(number);
+   return binToDec(temp.substr(temp.length()-16,temp.length()));
 }
 
 //     M O V E    F U N C T I O N
@@ -1528,7 +1549,7 @@ void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>
          cf = decToBin(**firstReg).at(0)-'0';
          **firstReg <<= 1;
          **firstReg |= temp;
-         // printBits(ax);
+         // printBits(*pcl);
       }
    }else if(option == "cmp"){
       checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"sub");
