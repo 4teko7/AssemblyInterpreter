@@ -216,7 +216,7 @@ void checkForInvalidVariableNames();
 int main() {
 
     // Open the input and output files, check for failures
-    ifstream inFile("test5");
+    ifstream inFile("Raw Tests/test1.asm");
     if (!inFile) { // operator! is synonymous to .fail(), checking if there was a failure
         cerr << "There was a problem when opening " << "input file" << endl;
         return 1;
@@ -1108,7 +1108,7 @@ void checkForCompatibility(string option,string str1,string str2){
                   else if(determineValueOfInstruction(str2) > 65535) exitFromExecution("ERROR : Result Does not fit into 16 Bit register ! : " + str2);
                   else return;
                }else if(!checkForW(str1)){
-                  if(checkForW(str2)) exitFromExecution("8 Bit - 16 Bit Error At : " + str2);
+                  if(checkForW(str2) || checkForB(str2)) exitFromExecution("ERROR : " + str2);
                   else if(pnhl != nullptr) return;
                   else if(pnx != nullptr) exitFromExecution("8 Bit - 16 Bit Error At : " + str2);
                   else if(determineValueOfInstruction(str2) > 255) exitFromExecution("ERROR : Result Does not fit into 8 Bit register ! : " + str2);
@@ -1122,7 +1122,7 @@ void checkForCompatibility(string option,string str1,string str2){
                   else if(determineValueOfInstruction(str2) > 65535) exitFromExecution("ERROR : Result Does not fit into 16 Bit register ! : " + str2);
                   else return;
                }else if(checkForB(str1)){
-                  if(checkForW(str2)) exitFromExecution("8 Bit - 16 Bit Error At : " + str2);
+                  if(checkForW(str2) || checkForB(str2)) exitFromExecution("ERROR  : " + str2);
                   else if(pnhl != nullptr) return;
                   else if(pnx != nullptr) exitFromExecution("8 Bit - 16 Bit Error At : " + str2);
                   else if(determineValueOfInstruction(str2) > 255) exitFromExecution("ERROR : Result Does not fit into 8 Bit register ! : " + str2);
