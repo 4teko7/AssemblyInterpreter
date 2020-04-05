@@ -82,7 +82,8 @@ struct dbVariable{
     string name;
     string type = "db";
     int address = 0;
-    unsigned short value = 0;
+    unsigned char valueOld = 0;
+    unsigned char *value;
 };
 
 
@@ -90,7 +91,8 @@ struct dwVariable{
     string name;
     string type = "dw";
     int address = 0;
-    unsigned short value = 0;
+    unsigned short valueOld = 0;
+    unsigned short *value;
 };
 
 struct Label{
@@ -186,14 +188,15 @@ void toLower(string& firstLine);
 int countSpecificCharacter(string str, char character);
 void printLabels();
 void printVariables();
-int getEightBitValueOfNumber(int number);
+int getRightEightBitValueOfNumber(int number);
+int getLeftEightBitValueOfNumber(int number);
 int getSixteenBitValueOfNumber(int number);
 
 
 
 // INSTRUCTIONS
 void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl,string option);
-template <class regOne, class regTwo>  void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str2,string& str3,string option);
+template <class regOne, class regTwo>  void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str1,string& str2,string& str3,string option);
 template <class regOne, class regTwo>  void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str2,string& str3,string option);
 void instructionForBrakets(string str1,string str2,string str3,string option);
 void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl);
@@ -292,12 +295,12 @@ void createDbOrDw(string& line){
             if((unsigned short)thirdWord.at(1) > 255) {
                exitFromExecution("Variable Value is too large to fit into db memory ");
             }
-            variable.value = (unsigned short)thirdWord.at(1);
+            variable.valueOld = (unsigned char)thirdWord.at(1);
          }else{
             if(determineValueOfInstruction(thirdWord) > 255) {
                exitFromExecution("Variable Value is too large to fit into db memory ");
             }
-            variable.value = determineValueOfInstruction(thirdWord);
+            variable.valueOld = (unsigned char) determineValueOfInstruction(thirdWord);
          }
          dbVariables.push_back(variable);
          queueOfVariables.push_back(make_pair(variable.name,"db"));
@@ -308,12 +311,12 @@ void createDbOrDw(string& line){
             if((unsigned short)thirdWord.at(1) > 65535) {
                exitFromExecution("Variable Value is too large to fit into dw memory ");
             }
-            variable.value = (unsigned short)thirdWord.at(1);
+            variable.valueOld = (unsigned short)thirdWord.at(1);
          }else{
          if(determineValueOfInstruction(thirdWord) > 65535) {
                exitFromExecution("Variable Value is too large to fit into dw memory ");
             }
-            variable.value = determineValueOfInstruction(thirdWord);
+            variable.valueOld = (unsigned short)determineValueOfInstruction(thirdWord);
          
          }
          
@@ -395,7 +398,8 @@ void setVariableAddress(string& variable,int address){
       for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
          if(variable == (*it).name){
             (*it).address = address;
-            memory[address] = (*it).value;
+            (*it).value = (unsigned char *) &memory[address];
+            (*(*it).value) = (*it).valueOld;
             isVariableFound1 = true;
             break;
          }
@@ -406,8 +410,8 @@ void setVariableAddress(string& variable,int address){
       {
          if(variable == (*it2).name){
             (*it2).address = address;
-            memory[address] = binToDec(decToBin((*it2).value).substr(8,16));
-            memory[address+1] = binToDec(decToBin((*it2).value).substr(0,8));
+            (*it2).value = (unsigned short *) &memory[address];
+            (*(*it2).value) = (*it2).valueOld;
             isVariableFound2 = true;
             break;
          }
@@ -618,24 +622,46 @@ void processOneWordInstructions(string& option, string& str1){
          *pmhl += 1;
       }                                                                          
       else if(isVariableFound1) {
-         checkAndSetFlags((*it).value,1,8,option);
-         (*it).value +=1;
-         memory[(*it).address] +=1;
+         string type = "";
+         int bit = 0;
+         unsigned short result = 0;
+         if(isItSixteenBitValue(str1)) result = memory[(*it).address] + memory[(*it).address + 1] * pow(2,8);
+         else result = memory[(*it).address] ;
+         
+         bit = isItSixteenBitValue(str1) ? 16 : 8; 
+         type = bit == 16 ? "dw" : "db";
+         checkAndSetFlags(result,1,bit,option);
+         setMemoryForDbAndDw((*it).address,++result,type);
+
+
+
+
+         // checkAndSetFlags(*(*it).value,1,8,option);
+         // *(*it).value +=1;
+         // memory[(*it).address] +=1;
       }
       else if(isVariableFound2) {
-         checkAndSetFlags((*it2).value,1,16,option);
-         (*it2).value +=1;
-         memory[(*it2).address] = binToDec(decToBin((*it2).value).substr(8,16));
-         memory[(*it2).address + 1] = binToDec(decToBin((*it2).value).substr(0,8));
+
+         string type = "";
+         int bit = 0;
+         unsigned short result = 0;
+         if(isItSixteenBitValue(str1)) result = memory[(*it2).address] + memory[(*it2).address + 1] * pow(2,8);
+         else result = memory[(*it2).address] ;
+         
+         bit = isItSixteenBitValue(str1) ? 16 : 8; 
+         type = bit == 16 ? "dw" : "db";
+         checkAndSetFlags(result,1,bit,option);
+         setMemoryForDbAndDw((*it2).address,--result,type);
+
+
       }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
          int result = 0;
          int address = stoi(cleanVariable(str1));
-         string type = isItSixteenBitValue(str1) ? "dw" : "db";
          int bit = isItSixteenBitValue(str1) ? 16 : 8;
+         string type = bit == 16 ? "dw" : "db";
          result = (type == "dw") ? memory[address] + memory[address+1] * pow(2,8) + 1 : memory[address] + 1;
          checkAndSetFlags(result-1,1,bit,option);
          setMemoryForDbAndDw(address,(unsigned short)result,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),result);
       }
    }else if(option == "dec"){
       unsigned short *pmx = nullptr; 
@@ -654,15 +680,41 @@ void processOneWordInstructions(string& option, string& str1){
          *pmhl-=1;
       }                                                                          
       else if(isVariableFound1) {
-         checkAndSetFlags((*it).value,1,8,option);
-         (*it).value-=1;
-         memory[(*it).address]-=1;
+
+         string type = "";
+         int bit = 0;
+         unsigned short result = 0;
+         if(isItSixteenBitValue(str1)) result = memory[(*it).address] + memory[(*it).address + 1] * pow(2,8);
+         else result = memory[(*it).address] ;
+         
+         bit = isItSixteenBitValue(str1) ? 16 : 8; 
+         type = bit == 16 ? "dw" : "db";
+         checkAndSetFlags(result,1,bit,option);
+         setMemoryForDbAndDw((*it).address,--result,type);
+
+
+         // checkAndSetFlags(*(*it).value,1,8,option);
+         // *(*it).value-=1;
+         // memory[(*it).address]-=1;
       }
       else if(isVariableFound2) {
-         checkAndSetFlags((*it2).value,1,16,option);
-         (*it2).value-=1;
-         memory[(*it2).address] = binToDec(decToBin((*it2).value).substr(8,16));
-         memory[(*it2).address + 1] = binToDec(decToBin((*it2).value).substr(0,8));
+
+         string type = "";
+         int bit = 0;
+         unsigned short result = 0;
+         if(isItSixteenBitValue(str1)) result = memory[(*it2).address] + memory[(*it2).address + 1] * pow(2,8);
+         else result = memory[(*it2).address] ;
+         
+         bit = isItSixteenBitValue(str1) ? 16 : 8; 
+         type = bit == 16 ? "dw" : "db";
+         checkAndSetFlags(result,1,bit,option);
+         setMemoryForDbAndDw((*it2).address,--result,type);
+
+
+         // checkAndSetFlags(*(*it2).value,1,16,option);
+         // *(*it2).value-=1;
+         // memory[(*it2).address] = binToDec(decToBin((*it2).value).substr(8,16));
+         // memory[(*it2).address + 1] = binToDec(decToBin((*it2).value).substr(0,8));
       }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
          int result = 0;
          int address = stoi(cleanVariable(str1));
@@ -671,7 +723,7 @@ void processOneWordInstructions(string& option, string& str1){
          result = (type == "dw") ? memory[address] + memory[address+1] * pow(2,8) - 1 : memory[address] - 1;
          checkAndSetFlags(result+1,1,bit,option);
          setMemoryForDbAndDw(address,(unsigned short)result,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),result);
+         // setVariableValue(getVariableNameFromVariableAddress(str1),result);
       }
    }else if(option == "push"){
       unsigned short deger = (unsigned short)determineValueOfInstruction(str1);
@@ -693,20 +745,19 @@ void processOneWordInstructions(string& option, string& str1){
       if(pmx != nullptr) *pmx = memory[sp]+memory[sp+1]*pow(2,8);
       else if(pmhl != nullptr) *pmhl = memory[sp];                                                                          
       else if(isVariableFound1) {
-         (*it).value = memory[sp];
-         memory[(*it).address] = (*it).value;
+         if(isItSixteenBitValue(str1)){ memory[(*it).address] = memory[sp]; memory[(*it).address + 1] = memory[sp + 1]; }
+         else memory[(*it).address] = memory[sp];
       }
       else if(isVariableFound2) {
-         (*it2).value = memory[sp] + memory[sp+1] * pow(2,8);
-         memory[(*it2).address] = memory[sp];
-         memory[(*it2).address + 1] = memory[sp + 1];
+         if(isItSixteenBitValue(str1)){ memory[(*it2).address] = memory[sp]; memory[(*it2).address + 1] = memory[sp + 1]; }
+         else memory[(*it).address] = memory[sp];
       }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
-         int result = 0;
          int address = stoi(cleanVariable(str1));
-         string type = isItSixteenBitValue(str1) ? "dw" : "db";
-         result = (type == "dw") ? memory[sp] + memory[sp+1] * pow(2,8) : memory[sp];
-         setMemoryForDbAndDw(address,(unsigned short)result,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),result);
+         if(isItSixteenBitValue(str1)){
+            memory[address] = memory[sp];
+            memory[address + 1] = memory[sp + 1];
+         }
+         else memory[address] = memory[sp];
       }
       memory[sp] = 0;
       memory[sp+1] = 0;
@@ -1324,12 +1375,16 @@ int determineValueOfInstruction(string reg) {
       }
 
     if(isVariableFound1){
-         result = ((*it).value); 
+         if(!isItSixteenBitValue(reg)){
+            result = memory[(*it).address];
+         }else{
+            result = memory[(*it).address] + memory[(*it).address+1] * pow(2,8); 
+         }
       }else if(isVariableFound2){
          if(!isItSixteenBitValue(reg)){
-            result = getEightBitValueOfNumber((*it2).value);
+            result = memory[(*it2).address];
          }else{
-            result = (*it2).value; 
+            result = memory[(*it2).address] + memory[(*it2).address+1] * pow(2,8); 
          }
       }else{
          result = getOtherValue(reg);
@@ -1388,13 +1443,19 @@ int getOtherValue(string str1) {
    if(isItSixteenBitt){
       return getSixteenBitValueOfNumber(result);
    }else{
-      return getEightBitValueOfNumber(result);
+      return getRightEightBitValueOfNumber(result);
    }
 }
 
-int getEightBitValueOfNumber(int number){
+int getRightEightBitValueOfNumber(int number){
    string temp = decToBin(number);
    return binToDec(temp.substr(temp.length()-8,temp.length()));
+}
+
+int getLeftEightBitValueOfNumber(int number){
+   string temp = decToBin(number);
+   temp = temp.substr(temp.length()-16,temp.length());
+   return binToDec(temp.substr(0,temp.length()-8));
 }
 
 int getSixteenBitValueOfNumber(int number){
@@ -1409,11 +1470,11 @@ void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVa
          }else if(pmhl != nullptr){
             moveValueToReg(&pmhl,pnhl,it,it2,str2,str3,option);
          }else if(isFirstVariableFound1){
-            if(pnhl != nullptr) moveValueToVariable(firstIt,pnhl,it,it2,str2,str3,option);
-            else moveValueToVariable(firstIt,pnx,it,it2,str2,str3,option);
+            if(pnhl != nullptr) moveValueToVariable(firstIt,pnhl,it,it2,str1,str2,str3,option);
+            else moveValueToVariable(firstIt,pnx,it,it2,str1,str2,str3,option);
          }else if(isFirstVariableFound2){
-            if(pnhl != nullptr) moveValueToVariable(firstIt2,pnhl,it,it2,str2,str3,option);
-            else moveValueToVariable(firstIt2,pnx,it,it2,str2,str3,option);
+            if(pnhl != nullptr) moveValueToVariable(firstIt2,pnhl,it,it2,str1,str2,str3,option);
+            else moveValueToVariable(firstIt2,pnx,it,it2,str1,str2,str3,option);
          }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
             instructionForBrakets(str1,str2,str3,option);
          }  
@@ -1483,71 +1544,58 @@ void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>
 }
 
 template <class regOne, class regTwo> 
-void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str2,string& str3,string option){
+void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str1,string& str2,string& str3,string option){
+   unsigned short result = 0;
+   string type = "";
+   int bit = 0;
    int resultOfInstruction = 0;
    if(pnx == nullptr) resultOfInstruction = (str3 == "offset") ? getVariableAddress(str2) : determineValueOfInstruction(str2);
    else resultOfInstruction = *pnx;
-   if(option == "mov"){
-      (*firstIt).value = resultOfInstruction;
-      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
-   }else if(option == "add"){
-      checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"add");
-      (*firstIt).value += resultOfInstruction;
-      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
-   }else if(option == "sub"){
-      checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"sub");
-      (*firstIt).value -= resultOfInstruction;
-      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
-   }else if(option == "or"){
-      checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"or");
-      (*firstIt).value |= resultOfInstruction;
-      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
-   }else if(option == "and"){
-      checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"and");
-      (*firstIt).value &= resultOfInstruction;
-      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
-   }else if(option == "not"){
-      (*firstIt).value = ~(*firstIt).value;
-      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
-   }else if(option == "xor"){
-      checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"xor");
-      (*firstIt).value ^= resultOfInstruction;
-      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
-   }else if(option == "shr"){
-      checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shr");
+   bit = isItSixteenBitValue(str1) ? 16 : 8; 
+   type = bit == 16 ? "dw" : "db";
+   
+   if(bit == 16) result = memory[(*firstIt).address] + memory[(*firstIt).address + 1] * pow(2,8);
+   else result = memory[(*firstIt).address] ;
+   checkAndSetFlags(result,resultOfInstruction,bit,option);
+
+   if(option == "mov"){ result = resultOfInstruction; setMemoryForDbAndDw((*firstIt).address,result,type);}
+   else if(option == "add"){ result += resultOfInstruction; setMemoryForDbAndDw((*firstIt).address,result,type);}
+   else if(option == "sub"){ result -= resultOfInstruction; setMemoryForDbAndDw((*firstIt).address,result,type);}
+   else if(option == "or"){ result |= resultOfInstruction; setMemoryForDbAndDw((*firstIt).address,result,type);}
+   else if(option == "and"){ result &= resultOfInstruction; setMemoryForDbAndDw((*firstIt).address,result,type);}
+   else if(option == "not"){ result = ~result; setMemoryForDbAndDw((*firstIt).address,result,type);}
+   else if(option == "xor"){ result ^= resultOfInstruction; setMemoryForDbAndDw((*firstIt).address,result,type);}
+   else if(option == "shr"){
       for (int i = 0; i < resultOfInstruction; i++) {
-         cf = (*firstIt).value & 1;
-         (*firstIt).value >>= 1;
+         cf = (*(*firstIt).value) & 1;
+         (*(*firstIt).value) >>= 1;
       }
-      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
+      setMemoryForDbAndDw((*firstIt).address,*(*firstIt).value,(*firstIt).type);
    }else if(option == "shl"){
-      checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"shl");
       for (int i = 0; i < resultOfInstruction; i++) {
-         cf = decToBin((*firstIt).value).at(0)-'0';
-         (*firstIt).value <<= 1;
+         cf = decToBin((*(*firstIt).value)).at(0)-'0';
+         (*(*firstIt).value) <<= 1;
       }
-      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
+      setMemoryForDbAndDw((*firstIt).address,*(*firstIt).value,(*firstIt).type);
    }else if(option == "rcr"){
-      checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"rcr");
       for (int i = 0; i < resultOfInstruction; i++) {
-         unsigned short temp = cf << sizeof((*firstIt).value) * 8 - 1;
-         cf = (*firstIt).value & 1;
-         (*firstIt).value >>= 1;
-         (*firstIt).value |= temp;
+         unsigned short temp = cf << sizeof(*(*firstIt).value) * 8 - 1;
+         cf = (*(*firstIt).value) & 1;
+         (*(*firstIt).value) >>= 1;
+         (*(*firstIt).value) |= temp;
       }
-      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
+      setMemoryForDbAndDw((*firstIt).address,*(*firstIt).value,(*firstIt).type);
    }else if(option == "rcl"){
-      checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"rcl");
       for (int i = 0; i < resultOfInstruction; i++) {
          bool temp = cf;
-         cf = decToBin((*firstIt).value).at(0)-'0';
-         (*firstIt).value <<= 1;
-         (*firstIt).value |= temp;
+         cf = decToBin(*(*firstIt).value).at(0)-'0';
+         (*(*firstIt).value) <<= 1;
+         (*(*firstIt).value) |= temp;
          // printBits(ax);
       }
-      setMemoryForDbAndDw((*firstIt).address,(*firstIt).value,(*firstIt).type);
+      setMemoryForDbAndDw((*firstIt).address,*(*firstIt).value,(*firstIt).type);
    }else if(option == "cmp"){
-      checkAndSetFlags((*firstIt).value,resultOfInstruction,sizeof((*firstIt).value)*8,"sub");
+      checkAndSetFlags(*(*firstIt).value,resultOfInstruction,bit,"sub");
    }
 
 }
@@ -1555,172 +1603,67 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
 
 void instructionForBrakets(string str1,string str2,string str3,string option) {
    int result = 0;
+   unsigned short temp = 0;
+   string type = "";
+   int bit = 0;
    result = (str3 == "offset") ? getVariableAddress(str2) : determineValueOfInstruction(str2);
    int address = stoi(cleanVariable(str1));
-   unsigned short temp = 0;
-   string type = isItSixteenBitValue(str1) ? "dw" : "db";
-   if(option == "mov"){
-      setMemoryForDbAndDw(stoi(cleanVariable(str1)),(unsigned short)result,type);
-      setVariableValue(getVariableNameFromVariableAddress(str1),result);
-   }else if(option == "add"){
-      if(isItSixteenBitValue(str1)){
-         unsigned short temp = 0;
-         temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
-         checkAndSetFlags(temp,result,16,"add");
-         temp += result;
-         setMemoryForDbAndDw(address,temp,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),temp);   
-      }else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"add");
-         memory[stoi(cleanVariable(str1))] += result;
-         setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
-      }
-   }else if(option == "sub"){
-      if(isItSixteenBitValue(str1)){
-         unsigned short temp = 0;
-         temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
-         checkAndSetFlags(temp,result,16,"sub");
-         temp -= result;
-         setMemoryForDbAndDw(address,temp,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),temp); 
-      }else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"sub");
-         memory[stoi(cleanVariable(str1))] -= result;
-         setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
-      }
-      
-   }else if(option == "or"){
-      if(isItSixteenBitValue(str1)){
-         unsigned short temp = 0;
-         temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
-         checkAndSetFlags(temp,result,16,"or");
-         temp |= result;
-         setMemoryForDbAndDw(address,temp,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),temp); 
-      }else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"or");
-         memory[stoi(cleanVariable(str1))] |= result;
-         setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
-      }
 
-   }else if(option == "and"){
-      if(isItSixteenBitValue(str1)){
-         unsigned short temp = 0;
-         temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
-         checkAndSetFlags(temp,result,16,"and");
-         temp &= result;
-         setMemoryForDbAndDw(address,temp,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),temp); 
-      }else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"and");
-         memory[stoi(cleanVariable(str1))] &= result;
-         setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
-      }
+   bit = isItSixteenBitValue(str1) ? 16 : 8; 
+   type = bit == 16 ? "dw" : "db";
+   
+   if(bit == 16) temp = memory[address] + memory[address + 1] * pow(2,8); 
+   else temp = memory[address] ;
+   checkAndSetFlags(temp,result,bit,option);
 
-   }else if(option == "not"){
-      if(isItSixteenBitValue(str1)){
-         unsigned short temp = 0;
-         temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
-         temp = ~temp;
-         setMemoryForDbAndDw(address,temp,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),temp); 
-      }else{
-         memory[stoi(cleanVariable(str1))] = ~memory[stoi(cleanVariable(str1))];
-         setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
-      }
 
-   }else if(option == "xor"){
-      if(isItSixteenBitValue(str1)){
-         unsigned short temp = 0;
-         temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
-         checkAndSetFlags(temp,result,16,"xor");
-         temp ^= result;
-         setMemoryForDbAndDw(address,temp,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),temp); 
-      }else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"xor");
-         memory[stoi(cleanVariable(str1))] ^= result;
-         setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
-      }
 
-   }else if(option == "shr"){
-      if(isItSixteenBitValue(str1)){
-         unsigned short temp=0;
-         temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
-         checkAndSetFlags(temp,result,16,"shr");
+   if(option == "mov"){ temp = result; setMemoryForDbAndDw(address,temp,type); }
+   else if(option == "add"){ temp += result; setMemoryForDbAndDw(address,temp,type); }
+   else if(option == "sub") { temp -= result; setMemoryForDbAndDw(address,temp,type); }
+   else if(option == "or") { temp |= result; setMemoryForDbAndDw(address,temp,type); }
+   else if(option == "and") { temp &= result; setMemoryForDbAndDw(address,temp,type); }
+   else if(option == "not")  { temp = ~temp; setMemoryForDbAndDw(address,temp,type); }
+   else if(option == "xor") { temp ^= result; setMemoryForDbAndDw(address,temp,type); }
+   else if(option == "shr"){
          for (int i = 0; i < result; i++) {
             cf = temp & 1;
             temp >>= 1;
          }
          setMemoryForDbAndDw(address,temp,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),temp);
-      }else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"shr");
-         for (int i = 0; i < result; i++) {
-            cf = memory[stoi(cleanVariable(str1))] & 1;
-            memory[stoi(cleanVariable(str1))] >>= 1;
-         }
-         setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
-
-      }
    }else if(option == "shl"){
       if(isItSixteenBitValue(str1)){
-         unsigned short temp=0;
-         temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
-         checkAndSetFlags(temp,result,16,"shl");
          for (int i = 0; i < result; i++) {
             cf = decToBin(temp).at(0)-'0';
             temp <<= 1;
          }
          setMemoryForDbAndDw(address,temp,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),temp);
       }else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"shl");
          for (int i = 0; i < result; i++) {
-               cf = decToBin(memory[stoi(cleanVariable(str1))]).at(0)-'0';
-               memory[stoi(cleanVariable(str1))] <<= 1;
+               cf = decToBin(memory[address]).at(0)-'0';
+               memory[address] <<= 1;
             } 
-         setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
       }
    }else if(option == "rcr"){
-      if(isItSixteenBitValue(str1)){
-         unsigned short temp=0;
-         temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
-         checkAndSetFlags(temp,result,16,"rcr");
+      if(bit == 16){
          for (int i = 0; i < result; i++) {
-            unsigned short shiftedValueOfCf = cf << sizeof(memory[stoi(cleanVariable(str1))]) * 8 - 1;
+            unsigned short shiftedValueOfCf = cf << sizeof(temp) * 8 - 1;
             cf = temp & 1;
             temp >>= 1;
             temp |= shiftedValueOfCf;
          } 
          setMemoryForDbAndDw(address,temp,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),temp);
       }else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"rcr");
          for (int i = 0; i < result; i++) {
-            unsigned short temp = cf << sizeof(memory[stoi(cleanVariable(str1))]) * 8 - 1;
-            cf = memory[stoi(cleanVariable(str1))] & 1;
-            memory[stoi(cleanVariable(str1))] >>= 1;
-            memory[stoi(cleanVariable(str1))] |= temp;
+            unsigned short temp = cf << sizeof(memory[address]) * 8 - 1;
+            cf = memory[address] & 1;
+            memory[address] >>= 1;
+            memory[address] |= temp;
          } 
-         setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
       }
 
    }else if(option == "rcl"){
       if(isItSixteenBitValue(str1)){
-         unsigned short temp=0;
-         temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
-         checkAndSetFlags(temp,result,16,"rcl");
          for (int i = 0; i < result; i++) {
             bool oldValueOfCf = cf;
             cf = decToBin(temp).at(0)-'0';
@@ -1728,31 +1671,17 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
             temp |= oldValueOfCf;
          }         
          setMemoryForDbAndDw(address,temp,type);
-         setVariableValue(getVariableNameFromVariableAddress(str1),temp);
       }else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"rcl");
          for (int i = 0; i < result; i++) {
             bool temp = cf;
-            cf = decToBin(memory[stoi(cleanVariable(str1))]).at(0)-'0';
-            memory[stoi(cleanVariable(str1))] <<= 1;
-            memory[stoi(cleanVariable(str1))] |= temp;
+            cf = decToBin(memory[address]).at(0)-'0';
+            memory[address] <<= 1;
+            memory[address] |= temp;
             }
-         setVariableValue(getVariableNameFromVariableAddress(str1),memory[stoi(cleanVariable(str1))]);
       }
-
-
-
 
    }else if(option == "cmp"){
-      if(isItSixteenBitValue(str1)){
-         unsigned short temp=0;
-         temp += memory[stoi(cleanVariable(str1))];
-         temp += memory[stoi(cleanVariable(str1))+1] * pow(2,8);
-         checkAndSetFlags(temp,result,16,"sub");
-
-      }else{
-         checkAndSetFlags(memory[stoi(cleanVariable(str1))],result,8,"sub");
-      }
+      //
    }
 
 }
@@ -1762,8 +1691,8 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
 template <class typeOfVariableValue> 
 void setMemoryForDbAndDw(int address,typeOfVariableValue variableValue,string typeOfVariable) {
    if(typeOfVariable == "dw"){
-      memory[address] = binToDec(decToBin(variableValue).substr(8,16));
-      memory[address+1] = binToDec(decToBin(variableValue).substr(0,8));
+      memory[address] = getRightEightBitValueOfNumber(variableValue);
+      memory[address+1] = getLeftEightBitValueOfNumber(variableValue);
    }else{
       if(variableValue > 255) {
          cout << "Paramater is too large to fit into memory !!!" << endl;
@@ -1820,7 +1749,7 @@ void checkAndSetFlags(int number1,int number2,int bit,string option) {
          else af = 0;
       }
 
-   }else if(option == "sub"){
+   }else if(option == "sub" || option == "cmp"){
        if(bit == 8){
          eightBitResult = num1EightBit - num2EightBit;
          if(decToBin(eightBitResult).at(0) == '1') sf = 1;
@@ -2092,7 +2021,7 @@ void setVariableValue(string variableName,int value){
       bool isVariableFound2 = false;
       for (it = dbVariables.begin(); it != dbVariables.end(); it++) {
          if(variableName == (*it).name){
-            (*it).value = value;
+            *(*it).value = value;
             isVariableFound1 = true;
             break;
          }
@@ -2101,7 +2030,7 @@ void setVariableValue(string variableName,int value){
       if(!isVariableFound1){
       for (it2 = dwVariables.begin(); it2 != dwVariables.end(); it2++) {
          if(variableName == (*it2).name){
-            (*it2).value = value;
+            *(*it2).value = value;
             isVariableFound2 = true;
             break;
          }
