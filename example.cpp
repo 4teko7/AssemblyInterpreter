@@ -437,14 +437,14 @@ void processLabels(int index){
       // Bu Satiri Biraz Daha Gelistir
        if(!isValidInstruction(firstWord)) exitFromExecution("ERROR : Invalid Instruction : " + firstWord);
       // Bu Satiri Sonra Sil
-      if(firstWord == "mov" || firstWord == "add" || firstWord == "sub" || firstWord == "xor" || firstWord == "or" || firstWord == "and" || firstWord == "not" || firstWord == "shr" || firstWord == "shl" || firstWord == "rcl" || firstWord == "rcr" || firstWord == "cmp"){
+      if(firstWord == "mov" || firstWord == "add" || firstWord == "sub" || firstWord == "xor" || firstWord == "or" || firstWord == "and" || firstWord == "shr" || firstWord == "shl" || firstWord == "rcl" || firstWord == "rcr" || firstWord == "cmp"){
          if(line.find("offset") != string::npos) thirdWordsComma(linestream,secondWord,thirdWord,forthWord);
          else twoWordsComma(linestream,secondWord,thirdWord);
          strToMemoryAddress(secondWord,thirdWord);
          isValidLine(firstWord,secondWord,thirdWord);
          if(forthWord != "offset") checkForCompatibility(firstWord,secondWord,thirdWord);
          processTwoWordsInstructions(firstWord,secondWord,thirdWord,forthWord);
-      }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop" || firstWord == "inc" || firstWord == "dec"){
+      }else if(firstWord == "int" || firstWord == "mul" || firstWord == "div" || firstWord == "push" || firstWord == "pop" || firstWord == "inc" || firstWord == "dec" || firstWord == "not"){
          getLinestreamLine(linestream,secondWord,' ');
          strToMemoryAddress(secondWord,thirdWord);
          isValidLine(firstWord,secondWord,thirdWord);
@@ -706,6 +706,87 @@ void processOneWordInstructions(string& option, string& str1){
          checkAndSetFlags(result+1,1,bit,option);
          setMemoryForDbAndDw(address,(unsigned short)result,type);
       }
+   }else if(option == "not"){
+      unsigned short *pmx = nullptr; 
+      unsigned char *pmhl = nullptr;
+      bool isVariableFound1 = false;
+      bool isVariableFound2 = false;
+      std::vector<dbVariable>::iterator it;
+      std::vector<dwVariable>::iterator it2;
+      determineReg(&pmx,&pmhl,str1,isVariableFound1,isVariableFound2,it,it2);
+      if(pmx != nullptr){
+         *pmx = ~(*pmx);
+      } 
+      else if(pmhl != nullptr) {
+         *pmhl = ~(*pmhl);
+      }                                                                          
+      else if(isVariableFound1) {
+
+         string type = "";
+         int bit = 0;
+         if(isItSixteenBitValue(str1)) {
+            unsigned short result = 0;
+            result = memory[(*it).address] + memory[(*it).address + 1] * pow(2,8);
+            bit = 16;
+            type = "dw";
+            result = ~result;
+            setMemoryForDbAndDw((*it).address,result,type);
+         }
+         else {
+            unsigned char result = 0;
+            result = memory[(*it).address] ;
+            bit = 8; 
+            type = "db";
+            result = ~result;
+            setMemoryForDbAndDw((*it).address,result,type);
+         }
+         
+         
+
+      }
+      else if(isVariableFound2) {
+
+         string type = "";
+         int bit = 0;
+         if(isItSixteenBitValue(str1)) {
+            unsigned short result = 0;
+            result = memory[(*it2).address] + memory[(*it2).address + 1] * pow(2,8);
+            bit = 16;
+            type = "dw";
+            result = ~result;
+            setMemoryForDbAndDw((*it2).address,result,type);
+         }
+         else {
+            unsigned char result = 0;
+            result = memory[(*it2).address] ;
+            bit = 8; 
+            type = "db";
+            result = ~result;
+            setMemoryForDbAndDw((*it2).address,result,type);
+         }
+
+
+      }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
+         int address = stoi(cleanVariable(str1));
+         string type = "dw";
+         int bit = 16;
+         if(isItSixteenBitValue(str1)) {
+            unsigned short result = 0;
+            string type = "dw";
+            int bit = 16;
+            result = memory[address] + memory[address+1] * pow(2,8);
+            result = ~result;
+            setMemoryForDbAndDw(address,result,type);
+         }
+         else {
+            unsigned char result = 0;
+            string type = "db";
+            int bit = 8;
+            result = memory[address];
+            result = ~result;
+            setMemoryForDbAndDw(address,result,type);
+         }
+      }
    }else if(option == "push"){
       unsigned short deger = (unsigned short)determineValueOfInstruction(str1);
       memory[sp] = binToDec(decToBin(deger).substr(8,16));
@@ -932,7 +1013,7 @@ void isValidLine(string a,string b,string c) {
 // Checking first word for example, mov,add,mul etc.
 bool isValidInstruction(string a){
    toLower(a);
-   if(a == "mov" || a == "add" || a == "sub" || a == "mul" || a == "div" || a == "xor" || a == "or" || a == "and" || a == "not" || a == "rcl" || a == "rcr" || a == "shl" || a == "shr" || a == "push" || a == "pop" ||a == "nop" || a == "cmp" || a=="jmp" || a == "jz" || a == "jnz" || a == "je"  || a == "jne" || a == "ja" || a == "jae" || a == "jb" || a == "jbe" || a == "jnae" || a == "jnb" || a == "jnbe" || a == "jnc" || a == "jc" || a == "int") return true;
+   if(a == "mov" || a == "add" || a == "sub" || a == "mul" || a == "div" || a == "xor" || a == "or" || a == "and" || a == "not" || a == "rcl" || a == "rcr" || a == "shl" || a == "shr" || a == "push" || a == "pop" ||a == "nop" || a == "cmp" || a=="jmp" || a == "jz" || a == "jnz" || a == "je"  || a == "jne" || a == "ja" || a == "jae" || a == "jb" || a == "jbe" || a == "jnae" || a == "jnb" || a == "jnbe" || a == "jnc" || a == "jc" || a == "int" || a == "dec" || a == "inc") return true;
    else false;
    //exitFromExecution("INVALID INSTRUCTION : " + a);
 }
@@ -1501,8 +1582,6 @@ void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>
    }else if(option == "and"){
       checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"and");
       **firstReg &= resultOfInstruction;
-   }else if(option == "not"){
-      **firstReg = ~(**firstReg);
    }else if(option == "xor"){
       checkAndSetFlags(**firstReg,resultOfInstruction,sizeof(**firstReg)*8,"xor");
       **firstReg ^= resultOfInstruction;
@@ -1563,7 +1642,6 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
    else if(option == "sub"){ result -= resultOfInstruction; setMemoryForDbAndDw((*firstIt).address,result,type);}
    else if(option == "or"){ result |= resultOfInstruction; setMemoryForDbAndDw((*firstIt).address,result,type);}
    else if(option == "and"){ result &= resultOfInstruction; setMemoryForDbAndDw((*firstIt).address,result,type);}
-   else if(option == "not"){ result = ~result; setMemoryForDbAndDw((*firstIt).address,result,type);}
    else if(option == "xor"){ result ^= resultOfInstruction; setMemoryForDbAndDw((*firstIt).address,result,type);}
    else if(option == "shr"){
       for (int i = 0; i < resultOfInstruction; i++) {
@@ -1623,7 +1701,6 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
    else if(option == "sub") { temp -= result; setMemoryForDbAndDw(address,temp,type); }
    else if(option == "or") { temp |= result; setMemoryForDbAndDw(address,temp,type); }
    else if(option == "and") { temp &= result; setMemoryForDbAndDw(address,temp,type); }
-   else if(option == "not")  { temp = ~temp; setMemoryForDbAndDw(address,temp,type); }
    else if(option == "xor") { temp ^= result; setMemoryForDbAndDw(address,temp,type); }
    else if(option == "shr"){
          for (int i = 0; i < result; i++) {
