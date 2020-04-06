@@ -225,6 +225,7 @@ int main() {
    string firstLine;
    getLineTrimLower(inFile,firstLine);
 
+   // This While for parsing input
    while(!checkint20h(firstLine) && !inFile.eof()){
       parseInput(firstLine,inFile);  
       getLineTrimLower(inFile,firstLine);
@@ -487,7 +488,7 @@ void processLabels(int index){
    if(index2 != -1) processLabels(index2);
 }
 
-
+// Cheking if it is fine to jump, this method will return true;
 bool checkForJumpCondition(string jmpType) {
    if(jmpType == "jz" || jmpType == "je"){
       if(zf) return true;
@@ -504,7 +505,7 @@ bool checkForJumpCondition(string jmpType) {
    }
    return false;
 }
-// PROCESS TWO WORDS INSTRUCTIONS
+// PROCESS TWO WORDS INSTRUCTIONS, for example, mov ax,10 or add ax,bx
 void processTwoWordsInstructions(string& option, string& str1,string& str2,string& str3){
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
@@ -533,7 +534,7 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
 
 }
 
-// PROCESS ONE WORD INSTRUCTIONS
+// PROCESS ONE WORD INSTRUCTIONS. For example, push ax, pop bx, mul w 10
 void processOneWordInstructions(string& option, string& str1){
    if(option == "int" && str1 == "21h"){
       if(*pah == 1){
@@ -768,6 +769,8 @@ void processOneWordInstructions(string& option, string& str1){
 
 }
 
+
+//This method converts strings like [bx],[si] to w,b [address]: and [address] to w,b [address] according to other parameter;
 void strToMemoryAddress(string& str1,string& str2) {
    string temp = str1;
    string temp2 = str2;
@@ -923,6 +926,7 @@ void strToMemoryAddress(string& str1,string& str2) {
 
 }
 
+//checking for invalid variables
 void checkForInvalidVariableNames() {
       std::vector<pair<string,string>>::iterator it;
       for (it = queueOfVariables.begin(); it != queueOfVariables.end(); it++) {
@@ -930,13 +934,14 @@ void checkForInvalidVariableNames() {
       }
 }
 
+//Check whether variable name is valid or not
 void isValidVariableName(string variableName) {
    toLower(variableName);
    if(isValidInstruction(variableName) || isValidRegister(variableName)) exitFromExecution("ERROR : " + variableName + " IS NOT A VALID VARIABLE NAME !!!");
    else if(variableName == "label" || variableName == "db" || variableName == "dw" || variableName == "w" || variableName == "b") exitFromExecution("ERROR : " + variableName + " IS NOT A VALID VARIABLE NAME !!!");
 }
 
-// BURAYI TEKRAR KONTROL ET
+// Checking whole line if it is correct or not
 void isValidLine(string a,string b,string c) {
    if(a != "" && !isValidInstruction(a)) exitFromExecution("INVALID INSTRUCTION : " + a);
    else if(b != "" && !isValidRegister(b) && !isValidVariable(b) && !isValidOtherValue(b)) exitFromExecution("INVALID INSTRUCTION : " + b);
@@ -944,12 +949,15 @@ void isValidLine(string a,string b,string c) {
 
 }
 
+// Checking first word for example, mov,add,mul etc.
 bool isValidInstruction(string a){
    toLower(a);
    if(a == "mov" || a == "add" || a == "sub" || a == "mul" || a == "div" || a == "xor" || a == "or" || a == "and" || a == "not" || a == "rcl" || a == "rcr" || a == "shl" || a == "shr" || a == "push" || a == "pop" ||a == "nop" || a == "cmp" || a=="jmp" || a == "jz" || a == "jnz" || a == "je"  || a == "jne" || a == "ja" || a == "jae" || a == "jb" || a == "jbe" || a == "jnae" || a == "jnb" || a == "jnbe" || a == "jnc" || a == "jc" || a == "int") return true;
    else false;
    //exitFromExecution("INVALID INSTRUCTION : " + a);
 }
+
+// Checking if it is a valid register
 bool isValidRegister(string a){
    toLower(a);
    a = cleanVariable(a);
@@ -957,6 +965,8 @@ bool isValidRegister(string a){
    if(a == "ax" || a == "bx" || a == "cx" || a == "dx" || a == "di" || a == "sp" || a == "si" || a == "bp" || a == "ah" || a == "al" || a == "bh" || a == "bl" || a == "ch" || a == "cl" || a == "dh" || a == "dl") return true;
    else return false;
 }
+
+//checking if it is a valid variable
 bool isValidVariable(string a){
       std::vector<dbVariable>::iterator it;
       std::vector<dwVariable>::iterator it2;
@@ -982,6 +992,7 @@ bool isValidVariable(string a){
       }
 }
 
+//Checking whether it is a valid other value such as 10,10d,300,'a',w[01100d] or not
 bool isValidOtherValue(string str1){
    toLower(str1);
    str1 = cleanVariable(str1);
@@ -1047,6 +1058,7 @@ bool isValidOtherValue(string str1){
    }
 }
 
+//Checking for errors such as : topla ax,10, mov b var, b 10, push bl, pop 10
 void checkForCompatibility(string option,string str1,string str2){
    toLower(option);
    toLower(str1);
@@ -1169,21 +1181,25 @@ void checkForCompatibility(string option,string str1,string str2){
 
 }
 
+// If there is an error this method will print error and exit from program
 void exitFromExecution(string paramaterError) {
    cout << paramaterError << endl;
    exit(1);
 }
 
+// Checking whether the parameter is a byte or not
 bool checkForB(string parameter){
    if((parameter.at(0) == 'b' || parameter.at(0) == 'B') && (parameter.at(1) == ' ' || parameter.at(1) == '.' || parameter.at(1) == '[')) return true;
    else return false;
 }
+
+// Checking whether the parameter is a word or not
 bool checkForW(string parameter){
    if((parameter.at(0) == 'w' || parameter.at(0) == 'W') && (parameter.at(1) == ' ' || parameter.at(1) == '.' || parameter.at(1) == '[')) return true;
    else return false;
 }
 
-
+// Checking if it is a sixteen bit value or not
 bool isItSixteenBitValue(string str1) {
       if(checkForW(str1)) return true;
       else if(checkForB(str1)) return false;
@@ -1244,7 +1260,8 @@ bool isItSixteenBitValue(string str1) {
    // ADD w'a',w"a" ETC. HERE.
 
 }
-// DETERMINE : pmx,pmhl,it,it2,isVariableFound1,isVariableFound2
+
+// DETERMINE Value of Registers and variable. Such as: pmx,pmhl,it,it2,isVariableFound1,isVariableFound2
 void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2) {
    string resultReg = reg;
    if(resultReg == "ax"){
@@ -1307,7 +1324,7 @@ void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& 
 
 }
 
-// DETERMINE VALUE OF INSTRUCTION
+// DETERMINE VALUE OF INSTRUCTION and return it.
 // ax,al,msg,1,1d,1h,'1',"1",[msg],[ax],[0090h],[0090]
 int determineValueOfInstruction(string reg) {
    if(reg == "") return 0;
@@ -1394,8 +1411,7 @@ int determineValueOfInstruction(string reg) {
    return result;
 }
 
-// determineValueOfInstruction Calls This Function -> getOtherValue
-// 1,1d,1h,'1',"1",[0090h],[0090]
+// determineValueOfInstruction Calls This Function For other values such as 1,1d,1h,'1',"1",[0090h],[0090]
 int getOtherValue(string str1) {
    if(str1 == "") return 0;
    int result = 0;
@@ -1447,23 +1463,26 @@ int getOtherValue(string str1) {
    }
 }
 
+// Returns right 8 bit of the value
 int getRightEightBitValueOfNumber(int number){
    string temp = decToBin(number);
    return binToDec(temp.substr(temp.length()-8,temp.length()));
 }
 
+// Returns bits between right value.length()-16 and value.length()-8 characters of the value
 int getLeftEightBitValueOfNumber(int number){
    string temp = decToBin(number);
    temp = temp.substr(temp.length()-16,temp.length());
    return binToDec(temp.substr(0,temp.length()-8));
 }
 
+// Returns right 16 bit of the value
 int getSixteenBitValueOfNumber(int number){
    string temp = decToBin(number);
    return binToDec(temp.substr(temp.length()-16,temp.length()));
 }
 
-//     M O V E    F U N C T I O N
+//     Determine and calls the funstions according to input line, and sends parameters which are not nullptr
 void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl,string option) {
          if(pmx != nullptr){
             moveValueToReg(&pmx,pnx,it,it2,str2,str3,option);
@@ -1481,7 +1500,7 @@ void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVa
 }
 
 
-
+// If first parameter is a register then this function will put value to that register
 template <class regOne, class regTwo> 
 void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str2,string& str3,string option){
    
@@ -1543,6 +1562,7 @@ void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>
    }
 }
 
+// If first parameter is a variable then this function will put value to that variable
 template <class regOne, class regTwo> 
 void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str1,string& str2,string& str3,string option){
    unsigned short result = 0;
@@ -1600,7 +1620,7 @@ void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::it
 
 }
 
-
+// If first parameter is a memory location then this function will put value to that memory location
 void instructionForBrakets(string str1,string str2,string str3,string option) {
    int result = 0;
    unsigned short temp = 0;
@@ -1687,7 +1707,7 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
 }
 
 
-// Change The Value Of Memory
+// put the value to an appropriate Memory address
 template <class typeOfVariableValue> 
 void setMemoryForDbAndDw(int address,typeOfVariableValue variableValue,string typeOfVariable) {
    if(typeOfVariable == "dw"){
@@ -1702,8 +1722,7 @@ void setMemoryForDbAndDw(int address,typeOfVariableValue variableValue,string ty
    }
 }
 
-// FLAGS
-
+// Checking instruction and determine flags according to result of execution
 void checkAndSetFlags(int number1,int number2,int bit,string option) {
    unsigned char num1EightBit = number1;
    unsigned char num2EightBit = number2;
@@ -2012,7 +2031,7 @@ void checkAndSetFlags(int number1,int number2,int bit,string option) {
 
 
 
-// FUNCTIONS ABOUT MEMORY ADDRESSoption == "shl"
+// Sets Variable values
 void setVariableValue(string variableName,int value){
    variableName = cleanVariable(variableName);
    std::vector<dbVariable>::iterator it;
@@ -2039,7 +2058,7 @@ void setVariableValue(string variableName,int value){
 }
 
 
-
+// With variable name,this method determines variable address and returns it
 int getVariableAddress(string& variable){
    string resultVariable = "";
    resultVariable = cleanVariable(variable);
@@ -2066,10 +2085,13 @@ int getVariableAddress(string& variable){
    if(isVariableFound1) return (*it).address;
    else return (*it2).address;
 }
+
+// With memory address, this method determines variable value and returns it
 int getVariableValueFromMemoryAddress(string address) {
    return memory[stoi(cleanVariable(address))];
 }
 
+// With memory address, this method determines variable name and returns it
 string getVariableNameFromVariableAddress(string address){
    int resultAddress = 0;
    resultAddress = stoi(cleanVariable(address));
@@ -2093,11 +2115,7 @@ string getVariableNameFromVariableAddress(string address){
 
 
 
-
-
-
-
-//REMOVE [,],h  FROM WORDS , THIS METHOD WILL RETURN A HEX VALUE
+//REMOVE [,],h,d,b  FROM WORDS , THIS METHOD WILL RETURN A DECIMAL VALUE
 string cleanVariable(string variable) {
    if(variable.find('[') != string::npos && variable.find(']') != string::npos){
       variable = variable.substr(variable.find_first_of('[')+1,variable.length());
@@ -2122,12 +2140,13 @@ string cleanVariable(string variable) {
    return variable;
 }
 
-// SEPARATE WORDS
+// Separates Two parameter Words
 void twoWordsComma(istringstream& linestream,string& secondWord, string& thirdWord){
    getLinestreamLine(linestream,secondWord,',');
    getLinestreamLine(linestream,thirdWord,'~');
 }
 
+// Separate Three parameter Words
 void thirdWordsComma(istringstream& linestream,string& secondWord, string& thirdWord, string& forthWord){
    getLinestreamLine(linestream,secondWord,',');
    getLinestreamLine(linestream,forthWord,' ');
@@ -2171,7 +2190,7 @@ void printLabels(){
       }
 }
 
-// PRINT LABELS
+// Returns index of labels according to their name
 int getIndexOfLabel(string & labelName) {
 
    std::vector<string>::iterator it;
@@ -2186,14 +2205,14 @@ int getIndexOfLabel(string & labelName) {
 
 
 
-// TRIMS LINESTREAMS
-// TRIM LINES
+// Trim words
 inline std::string trim(std::string& str) {
     str.erase(0, str.find_first_not_of(' '));       //prefixing spaces
     str.erase(str.find_last_not_of(' ')+1);         //surfixing spaces
     return str;
 }
 
+//Gets line from input,trims it,remove this character '\r' and lastly lowers it
 void getLineTrimLower(ifstream& inFile,string& firstLine){
    getline(inFile,firstLine);
    trim(firstLine);
@@ -2202,6 +2221,7 @@ void getLineTrimLower(ifstream& inFile,string& firstLine){
    
 }
 
+// get words from line and trims it
 inline string getLinestreamLine(istringstream& linestream,string& word,char option) {
    if(option == '~'){
       getline(linestream,word);
@@ -2215,6 +2235,7 @@ inline string getLinestreamLine(istringstream& linestream,string& word,char opti
    return word;
 }
 
+// counts specific characters in the word
 int countSpecificCharacter(string str, char character) {
    int count = 0;
    for (int i = 0; i < str.length(); i++) {
@@ -2226,7 +2247,7 @@ int countSpecificCharacter(string str, char character) {
 
 
 
-// LOWER CASE
+// Lowers the word
 void toLower(string& firstLine){
    if(isint20h){
       istringstream linestream(firstLine);
@@ -2273,42 +2294,61 @@ void toLower(string& firstLine){
       }
       trim(firstLine);
 }
+// Uppers the word
 void toUpper(string& firstLine){
    transform(firstLine.begin(), firstLine.end(), firstLine.begin(), ::toupper);
 }
 
+// Determines if it is a one word instruction. For example, push, pop,inc,dec,mul and so on.
 bool isItOneWordInstruction(string a) {
    transform(a.begin(), a.end(), a.begin(), ::tolower);
    if(a == "push" || a == "pop" || a == "inc" || a == "dec" || a == "int" || a == "not" || a == "int" || a == "div"  || a == "mul" || a == "jmp" || a == "jz" || a == "je" || a == "jnz" || a == "jne" || a == "jja" || a == "jnbe" || a == "jae" || a == "jnc" || a == "jnb" || a == "jb" || a == "jnae" || a == "jc" || a == "jbe" || a == "jna") return true;
    return false;
 }
-//       C H E C K S
+
+// Check if the line containes space
 bool checkSpace(string& line){
    return line.find(' ') != string::npos;
 }
+
+// Check if the line containes Quotation Marks
 bool checkQuotationMarks(string& line){
    return line.find('"') != string::npos;
 }
+
+// Check if the line containes Single quotation mark
 bool checkSingleQuotationMark(string& line) {
    return line.find('\'') != string::npos;
 }
+
+// Check if the line containes comme
 bool checkComma(string& line){
    return line.find(',') != string::npos;
 }
+
+// Check if the line containes semicolon
 bool checkSemiColon(string& line){
    return line.find(':') != string::npos;
 }
+
+// Check if the line containes int 20h
 bool checkint20h(string& line){
    return line.find("int 20h") != string::npos;
 }
+
+// Check if the line containes brakets
 bool checkBrackets(string& line) {
    return line.find('[') != string::npos && line.find(']') != string::npos;
 }
+
+// Check if word's specific index is a number
 bool isDigitDecimal(string variable,int digit){
    return 48 <= variable.at(digit) && variable.at(digit) <= 57;
 }
-//       E N D   C H E C K S
 
+
+
+// Hexadecimal to Decimal
 unsigned short hexToDec(std::string hexString) {
    toUpper(hexString);
    int len = hexString.length();
@@ -2327,7 +2367,7 @@ unsigned short hexToDec(std::string hexString) {
    return temp;
 }
 
-
+// Decimal to Hexadecimal
 string decToHex(int n) { 
     string result = "";    
     if(n == 0) return "0";
@@ -2355,6 +2395,7 @@ string decToHex(int n) {
     
 } 
 
+// Decimal to Binary
 template <class datatype>
 string decToBin(datatype x) {
     string bits = "";
@@ -2364,6 +2405,7 @@ string decToBin(datatype x) {
     return bits;
 }
 
+// Binary to Decimal
 int binToDec(string number) {
     int n = 0,index = 0;
     for (int i = number.length()-1; i >= 0; i--)
@@ -2373,6 +2415,7 @@ int binToDec(string number) {
     return n;
 }
 
+// Binary to Decimal
 int binToDec(long long int n) {
     int decimalNumber = 0, i = 0, remainder;
     while (n!=0)
@@ -2385,6 +2428,7 @@ int binToDec(long long int n) {
     return decimalNumber;
 }
 
+// Prints bits of the parameter
 template <class datatype> 
 void printBits(datatype x) {
     int i;
@@ -2395,6 +2439,7 @@ void printBits(datatype x) {
     printf("\n");
 }
 
+// Prints hexadecimal value of the parameter
 template <class datatype> 
 void print_hex(datatype x) {
    if (sizeof(x) == 1) 
@@ -2403,6 +2448,7 @@ void print_hex(datatype x) {
       printf("%04x\n",x); 
 }
 
+// Prints all sixteen bit and eight bit registers 
 void print_16bitregs() {
    printf("AX:%04x\n",ax); 
    printf("BX:%04x\n",bx); 
@@ -2418,82 +2464,3 @@ void print_16bitregs() {
    printf("DL:%04x\n",*pdl); 
    printf("SP:%04x\n",sp); 
 }
-
-
-// YEDEK OR
-// void orOfValues(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isVariableFound1,bool& isVariableFound2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl) {
-
-//    char character;
-//    if(pmx != nullptr){
-//       if(pnx != nullptr){
-
-//       }else if(pnhl != nullptr){
-
-//       }else if(isVariableFound1){
-
-//       }else if(isVariableFound2){
-
-//       }else{
-
-//       }
-//    }else if(pmhl != nullptr){
-//       if(pnx != nullptr){
-
-//       }else if(pnhl != nullptr){
-
-//       }else if(isVariableFound1){
-
-//       }else if(isVariableFound2){
-
-//       }else{
-         
-//       }
-//    }else if(isFirstVariableFound1){
-//       if(pnx != nullptr){
-
-//       }else if(pnhl != nullptr){
-
-//       }else if(isVariableFound1){
-
-//       }else if(isVariableFound2){
-
-//       }else{
-         
-//       }
-//    }else if(isFirstVariableFound2){
-//       if(pnx != nullptr){
-
-//       }else if(pnhl != nullptr){
-
-//       }else if(isVariableFound1){
-
-//       }else if(isVariableFound2){
-
-//       }else{
-         
-//       }
-//    }else{
-//       if(pnx != nullptr){
-
-//       }else if(pnhl != nullptr){
-
-//       }else if(isVariableFound1){
-
-//       }else if(isVariableFound2){
-
-//       }else{
-         
-//       }
-  
-//    }
-//    // moveValueToReg(&pmx,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3);
-//    // else if(pmhl != nullptr){
-//    //    moveValueToReg(&pmhl,pnhl,it,it2,isVariableFound1,isVariableFound2,str2,str3);
-//    // }else if(isFirstVariableFound1){
-//    //    if(pnhl != nullptr) moveValueToVariable(firstIt,pnhl,it,it2,isVariableFound1,isVariableFound2,str2,str3);
-//    //    else moveValueToVariable(firstIt,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3);
-//    // }else if(isFirstVariableFound2){
-//    //    if(pnhl != nullptr) moveValueToVariable(firstIt2,pnhl,it,it2,isVariableFound1,isVariableFound2,str2,str3);
-//    //    else moveValueToVariable(firstIt2,pnx,it,it2,isVariableFound1,isVariableFound2,str2,str3);
-//    // }
-// }
