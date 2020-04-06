@@ -290,7 +290,7 @@ void createDbOrDw(string& line){
       getLinestreamLine(linestream,forthWord,' ');
       getLinestreamLine(linestream,fifthWord,' ');
       // cout << "FirstWord : " << firstWord << " - Second Word : " << secondWord << " - thirdWord : " << thirdWord << " - ForthWord : " << forthWord << " - FIfth Word : " << fifthWord << endl;
-      
+      if(isValidInstruction(thirdWord) || isValidRegister(thirdWord)) exitFromExecution("Invalid Variable Value !!! " + thirdWord);
 
       if(secondWord == "db"){
          dbVariable variable;
@@ -1506,7 +1506,7 @@ int getOtherValue(string str1) {
       }else if((48 <= str1.at(str1.length() -1) && str1.at(str1.length() - 1) <= 57)){
          result = stoi(str1);
       }else{
-         cout << "CAN NOT BE PARSED !!! " << endl;
+         exitFromExecution("CAN NOT BE PARSED !!! " + str1);
       }
       
    }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
@@ -1524,7 +1524,7 @@ int getOtherValue(string str1) {
       }else if((str1.find('"') != string::npos || str1.find('\"') != string::npos) && ((str1.find_first_of('\"') != str1.find_last_of('\"')) || (str1.find_first_of('"') != str1.find_last_of('"')))){
          character = (str1.find_first_of('\"') != string::npos) ? str1.at(str1.find_first_of('\"')+1) : str1.at(str1.find_first_of('"')+1);
       }else{
-         character = str1.at(0);
+         exitFromExecution("CAN NOT BE PARSED !!! " + str1);
       }
       result = character;
    }
