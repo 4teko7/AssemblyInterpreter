@@ -213,6 +213,7 @@ bool isValidVariable(string a);
 bool isValidOtherValue(string str1);
 void isValidVariableName(string variableName);
 void checkForInvalidVariableNames();
+void checkForInvalidLabelNames();
 int main(int argc, char* argv[]) {
 
     // Open the input and output files, check for failures
@@ -234,6 +235,7 @@ int main(int argc, char* argv[]) {
    constructMemory();
    isint20h = false;
    checkForInvalidVariableNames();
+   checkForInvalidLabelNames();
    processLabels(0);
 }
 
@@ -271,7 +273,7 @@ void createLabel(ifstream& inFile,string& stringName){
 void createLinesWithoutLabels(ifstream& inFile,string& stringName){
    string labelName = "";
    Label label;
-   label.name = "Without Labels";
+   label.name = "WithoutLabels";
    lineWithoutLabel = true;
    getLabelContent(label,inFile,stringName);
 }
@@ -992,6 +994,14 @@ void checkForInvalidVariableNames() {
       std::vector<pair<string,string>>::iterator it;
       for (it = queueOfVariables.begin(); it != queueOfVariables.end(); it++) {
          isValidVariableName((*it).first);
+      }
+}
+
+void checkForInvalidLabelNames() {
+      std::vector<Label>::iterator it;
+      
+      for (it = labels.begin(); it != labels.end(); it++) {
+         if(((*it).name).find(' ') != string::npos || (*it).name == "label") exitFromExecution("ERROR : Invalid Label Name !!! : " + (*it).name);
       }
 }
 
