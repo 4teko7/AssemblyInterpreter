@@ -216,7 +216,7 @@ void checkForInvalidVariableNames();
 int main() {
 
     // Open the input and output files, check for failures
-    ifstream inFile("Raw Tests/test1.asm");
+    ifstream inFile("atwon.txt");
     if (!inFile) { // operator! is synonymous to .fail(), checking if there was a failure
         cerr << "There was a problem when opening " << "input file" << endl;
         return 1;
@@ -539,14 +539,10 @@ void processOneWordInstructions(string& option, string& str1){
    if(option == "int" && str1 == "21h"){
       if(*pah == 1){
          cin.clear();
-         char temp;
-         cin;
-         temp = cin.get();
-         if(temp ==  '\n') {
-            *pal = 13;
-         }else{
-            *pal = (unsigned char)temp;
-         }
+         string s = "";
+         getline(cin,s);
+         unsigned char temp = s.at(0);
+         *pal = temp;
       }else if(decToHex(*pah) == "2"){
          cout << (char)(*pdl) ;
          *pal = *pdl;
@@ -734,7 +730,7 @@ void processOneWordInstructions(string& option, string& str1){
       // print_16bitregs() ; 
    }else if(option == "pop"){
       // Determine Reg te [0090h] gibi sayilarida belirle, pop [0090h] diyebilir.
-      if(sp >= 65534) return;
+      if(sp >= 65534) exitFromExecution("ERROR : There is no any number to pop");
       sp += 2;
       unsigned short *pmx = nullptr; 
       unsigned char *pmhl = nullptr;
