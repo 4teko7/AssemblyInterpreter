@@ -213,12 +213,12 @@ bool isValidVariable(string a);
 bool isValidOtherValue(string str1);
 void isValidVariableName(string variableName);
 void checkForInvalidVariableNames();
-int main() {
+int main(int argc, char* argv[]) {
 
     // Open the input and output files, check for failures
-    ifstream inFile("atwon.txt");
+    ifstream inFile(argv[1]);
     if (!inFile) { // operator! is synonymous to .fail(), checking if there was a failure
-        cerr << "There was a problem when opening " << "input file" << endl;
+        cerr << "There was a problem when opening " << argv[1] << " as an input file" << endl;
         return 1;
     }
 
@@ -519,8 +519,6 @@ void processTwoWordsInstructions(string& option, string& str1,string& str2,strin
       bool isVariableFound2 = false;
       bool isFirstVariableFound1 = false;
       bool isFirstVariableFound2 = false;
-      // sixteenBitForMemory1 = false;
-      // eightBitForMemory1 = false;
 
 
       determineReg(&pmx,&pmhl,str1,isFirstVariableFound1,isFirstVariableFound2,firstIt,firstIt2);
@@ -631,11 +629,6 @@ void processOneWordInstructions(string& option, string& str1){
          setMemoryForDbAndDw((*it).address,++result,type);
 
 
-
-
-         // checkAndSetFlags(*(*it).value,1,8,option);
-         // *(*it).value +=1;
-         // memory[(*it).address] +=1;
       }
       else if(isVariableFound2) {
 
@@ -648,7 +641,7 @@ void processOneWordInstructions(string& option, string& str1){
          bit = isItSixteenBitValue(str1) ? 16 : 8; 
          type = bit == 16 ? "dw" : "db";
          checkAndSetFlags(result,1,bit,option);
-         setMemoryForDbAndDw((*it2).address,--result,type);
+         setMemoryForDbAndDw((*it2).address,++result,type);
 
 
       }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
@@ -689,10 +682,6 @@ void processOneWordInstructions(string& option, string& str1){
          checkAndSetFlags(result,1,bit,option);
          setMemoryForDbAndDw((*it).address,--result,type);
 
-
-         // checkAndSetFlags(*(*it).value,1,8,option);
-         // *(*it).value-=1;
-         // memory[(*it).address]-=1;
       }
       else if(isVariableFound2) {
 
@@ -708,10 +697,6 @@ void processOneWordInstructions(string& option, string& str1){
          setMemoryForDbAndDw((*it2).address,--result,type);
 
 
-         // checkAndSetFlags(*(*it2).value,1,16,option);
-         // *(*it2).value-=1;
-         // memory[(*it2).address] = binToDec(decToBin((*it2).value).substr(8,16));
-         // memory[(*it2).address + 1] = binToDec(decToBin((*it2).value).substr(0,8));
       }else if(str1.find('[') != string::npos && str1.find(']') != string::npos && isDigitDecimal(str1,str1.find_first_of('[')+1)){
          int result = 0;
          int address = stoi(cleanVariable(str1));
@@ -720,7 +705,6 @@ void processOneWordInstructions(string& option, string& str1){
          result = (type == "dw") ? memory[address] + memory[address+1] * pow(2,8) - 1 : memory[address] - 1;
          checkAndSetFlags(result+1,1,bit,option);
          setMemoryForDbAndDw(address,(unsigned short)result,type);
-         // setVariableValue(getVariableNameFromVariableAddress(str1),result);
       }
    }else if(option == "push"){
       unsigned short deger = (unsigned short)determineValueOfInstruction(str1);
@@ -1671,10 +1655,10 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
          setMemoryForDbAndDw(address,temp,type);
       }else{
          for (int i = 0; i < result; i++) {
-            unsigned short temp = cf << sizeof(memory[address]) * 8 - 1;
+            unsigned short temp2 = cf << sizeof(memory[address]) * 8 - 1;
             cf = memory[address] & 1;
             memory[address] >>= 1;
-            memory[address] |= temp;
+            memory[address] |= temp2;
          } 
       }
 
@@ -1689,10 +1673,10 @@ void instructionForBrakets(string str1,string str2,string str3,string option) {
          setMemoryForDbAndDw(address,temp,type);
       }else{
          for (int i = 0; i < result; i++) {
-            bool temp = cf;
+            bool temp2 = cf;
             cf = decToBin(memory[address]).at(0)-'0';
             memory[address] <<= 1;
-            memory[address] |= temp;
+            memory[address] |= temp2;
             }
       }
 
