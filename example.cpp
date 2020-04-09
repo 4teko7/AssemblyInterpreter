@@ -1,3 +1,11 @@
+/*
+
+Bilal Tekin
+2017400264
+
+*/
+
+
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -7,13 +15,20 @@
 #include<stdlib.h>
 #include<math.h>
 // prototypes 
+
+//Print Bits
 template <class datatype> void printBits(datatype x);
+//Print Hex Values Of Parameter
 template <class datatype> void print_hex(datatype x) ; 
+// MovRegToReg
 template <class regtype>  void mov_reg_reg(regtype *preg1,regtype *preg2)  ;
+// PrintAllSixteenBixVariables
 void print_16bitregs() ; 
 
 // global variables ( memory, registers and flags ) 
 unsigned char memory[2<<15] ;    // 64K memory 
+
+// REGISTERS
 unsigned short ax = 0 ; 
 unsigned short bx = 0 ;
 unsigned short cx = 0 ; 
@@ -28,6 +43,7 @@ unsigned short PC = 0 ;
 unsigned short sp = (2<<15)-2;
 
 
+// FLAGS
 bool zf = 0;              // zero flag
 bool cf = 0;              // carry flag
 bool af = 0;              // auxillary flag 
@@ -37,6 +53,7 @@ bool of = 0;              // overflow flag
 
 // INSTRUCTIONS 
 
+// JMP INSTRUCTIONS
 bool jz = 0; 
 bool jnz = 0; 
 bool je = 0; 
@@ -53,7 +70,7 @@ bool jc = 0;
 
 
 
-// initialize pointers 
+// initialize Register pointers 
 unsigned short *pax = &ax ; 
 unsigned short *pbx = &bx ; 
 unsigned short *pcx = &cx ; 
@@ -78,6 +95,7 @@ using namespace std;
 
 //   OBJECTS
 
+// Object For Db Variables
 struct dbVariable{
     string name;
     string type = "db";
@@ -86,7 +104,7 @@ struct dbVariable{
     unsigned char *value;
 };
 
-
+// Object For Dw Variables
 struct dwVariable{
     string name;
     string type = "dw";
@@ -95,6 +113,7 @@ struct dwVariable{
     unsigned short *value;
 };
 
+// Object For Labels
 struct Label{
     string name = "";
     vector<string> content;
@@ -112,108 +131,177 @@ bool isJustAfterCompare = false;
 bool lineWithoutLabel = false;
 int numberOfLinesWithoutVariables = 0;
 bool canJump = false;
-// Pair<Pair<nameOfVariable,Pair<typeOfVariable,balueOfVariable>>,addressOfVariable>
-// nameOfVariable - typeOfVariable
 vector<pair<string,string>> queueOfVariables;
 
-// bool eightBitForMemory1 = false;
-// bool sixteenBitForMemory1 = false;
 
 // FUNCTIONS
 
 // **********************************************
 //    C H E C K S
 
+// CheckingSpaces
 bool checkSpace(string& line);
+//CheckingQuotationMarks
 bool checkQuotationMarks(string& line);
+//CheckingSingleQuotationMarks
 bool checkSingleQuotationMark(string& line);
+//CheckingComma
 bool checkComma(string& line);
+//CheckingSemiColon
 bool checkSemiColon(string& line);
+//Checking int20h
 bool checkint20h(string& line);
+//CheckingForDecimalDigtis
 bool isDigitDecimal(string variable,int digit);
+//CheckingBrakets
 bool checkBrackets(string& line);
+//CheckForJumpConditions
 bool checkForJumpCondition(string jmpType);
+//CheckingForByteValues
 bool checkForB(string parameter);
+//CheckingForWordValues
 bool checkForW(string parameter);
 
 // GET VALUE OF SOMETHING
+//DetermineValueOfInstructions
 int determineValueOfInstruction(string reg);
+//GetOtherValues
 int getOtherValue(string str1);
+//GetAddressOfVariables
 int getVariableAddress(string& variable);
+//GetVariableValueFromMemoryAddress
 int getVariableValueFromMemoryAddress(string address);
+//GetVariableNameFromVariableAddress
 string getVariableNameFromVariableAddress(string address);
+//GetIndexOfLabel
 int getIndexOfLabel(string & labelName);
+//DetermineRegisterAndVariables
 void determineReg(unsigned short **pmx, unsigned char **pmhl, string& reg,bool& isVariableFound1,bool& isVariableFound2,std::vector<dbVariable>::iterator &it,std::vector<dwVariable>::iterator &it2);
 
 
 // SET VALUE OF SOMETHING
+//SetAddressOfVariables
 void setVariableAddress(string& variable,int address);
+//SetVariableValues
 void setVariableValue(string variableName,int value);
+//CheckAndSetFlags
 void checkAndSetFlags(int number1,int number2,int bit,string option);
 
 
 // CLEANING AND PARSING
-string cleanVariable(string variable);
-inline std::string trim(std::string& str);
-void getLineTrimLower(ifstream& inFile,string& firstLine);
-inline string getLinestreamLine(istringstream& linestream,string& word,char option);
 
+//CleanVariablesFrom [ , h , d , b , ]
+string cleanVariable(string variable);
+//TrimSpaces
+inline std::string trim(std::string& str);
+//GetNextLineInTheInputFileAndTrimItAndLowerIt
+void getLineTrimLower(ifstream& inFile,string& firstLine);
+//GetWordsInsideOfLines
+inline string getLinestreamLine(istringstream& linestream,string& word,char option);
+//Parse Line such as mov ax,bx
 void twoWordsComma(istringstream& linestream,string& secondWord, string& thirdWord);
+//Parse Line such as mov ax, offset var
 void thirdWordsComma(istringstream& linestream,string& secondWord, string& thirdWord, string& forthWord);
 
-
+// Parse Input
 void parseInput(string& line,ifstream& inFile);
+//Create Labels
 void createLabel(ifstream& inFile,string& labelName);
+//CreateInstructionsWhichDoes not have label Name
 void createLinesWithoutLabels(ifstream& inFile,string& stringName);
+//Create Db or Dw variables
 void createDbOrDw(string& line);
+// Get Content Of Labels: Instuctions inside labels
 void getLabelContent(Label& label,ifstream& inFile,string& line);
+//Determine Variables inside labels
 void determineLabelVariables();
+//put value of variables inside memory
 void constructMemory();
+//Process label instructions
 void processLabels(int index);
+//ProcessTwoWordInstructions such as mov ax,bx
 void processTwoWordsInstructions(string& option, string& str1,string& str2,string& str3);
+//ProcessOneWordInstructions such as mov ax, offset var
 void processOneWordInstructions(string& option, string& str1);
+//Converting Instuctions such as [bx] into [01100b], [sp] to [000303h]
 void strToMemoryAddress(string& str1,string& str2);
+//CheckWhetherItIsASixteenBitValue
 bool isItSixteenBitValue(string str1);
 
 
 
 //UTILITY FUNCTIONS
+
+// Convert Hexadecimal To Decimal
 unsigned short hexToDec(std::string hexString);
+// Convert Decimal To Hexadecimal
 string decToHex(int n);
+// Convert Decimal To Binary
 template <class datatype> string decToBin(datatype x);
+// Convert Binary To Decimal
 int binToDec(string number);
+// Convert Binary To Decimal
 int binToDec(long long int n);
+//MakeLineUpperCase
 void toUpper(string& firstLine);
+//MakeLineLowerCase
 void toLower(string& firstLine);
+//Count Specific Characters In the word
 int countSpecificCharacter(string str, char character);
+//Print Labels
 void printLabels();
+//Print Variables
 void printVariables();
+//Get Right 8 bit of the number
 int getRightEightBitValueOfNumber(int number);
+// Get Left Bits bitween right 16-8 of the number 
 int getLeftEightBitValueOfNumber(int number);
+//Get Sixteen Bit value of the number
 int getSixteenBitValueOfNumber(int number);
 
 
 
 // INSTRUCTIONS
+// Process Instructions such as mov
 void instructionOptions(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,std::vector<dbVariable>::iterator firstIt,std::vector<dwVariable>::iterator firstIt2,bool& isFirstVariableFound1,bool& isFirstVariableFound2,string& str1,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl,string option);
+// Move Value to variable
 template <class regOne, class regTwo>  void moveValueToVariable(regOne& firstIt,regTwo *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str1,string& str2,string& str3,string option);
+//Move value to register
 template <class regOne, class regTwo>  void moveValueToReg(regOne** firstReg, regTwo* secondReg,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,string& str2,string& str3,string option);
+//Process lines with Brakets
 void instructionForBrakets(string str1,string str2,string str3,string option);
+//Add Instructions
 void add(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl);
+//Sub Instructions
 void sub(unsigned short *pmx,unsigned short *pnx,std::vector<dbVariable>::iterator& it,std::vector<dwVariable>::iterator& it2,bool& isVariableFound1,bool& isVariableFound2,string& str2,string& str3,unsigned char *pmhl,unsigned char *pnhl);
+//CMP Instructions
 void comparison(unsigned short firstValue,unsigned short secondValue);
+//Update Value inside memory
 template <class typeOfVariableValue> void setMemoryForDbAndDw(int address,typeOfVariableValue variableValue,string typeOfVariable);
+//If There is an error exit from program
 void exitFromExecution(string paramaterError);
+//Checking For Errors
 void checkForCompatibility(string option,string str1,string str2);
+//Checking if it is a one word instruction, for example, push bx
 bool isItOneWordInstruction(string a);
+//Checking errors in the line
 void isValidLine(string a,string b,string c);
+//Checking for invalid instructions such as 'topla'
 bool isValidInstruction(string a);
+//Checking for invalid registers
 bool isValidRegister(string a);
+//Checking for invalid variable names
 bool isValidVariable(string a);
+//CheckingForOtherValues Such as 10,10d,10h,'a',[0110] etc.
 bool isValidOtherValue(string str1);
+//Checking invalid variable names
 void isValidVariableName(string variableName);
+//checking Invalid Variable Names
 void checkForInvalidVariableNames();
+//Checking invalid label names
 void checkForInvalidLabelNames();
+
+//Main Functions
 int main(int argc, char* argv[]) {
 
     // Open the input and output files, check for failures
@@ -998,6 +1086,7 @@ void checkForInvalidVariableNames() {
       }
 }
 
+//Checking Invalid Label Names
 void checkForInvalidLabelNames() {
       std::vector<Label>::iterator it;
       
